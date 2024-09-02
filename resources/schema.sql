@@ -10,9 +10,9 @@ create table DataOrders.delivery (
      city varchar(255) not null,
      address varchar(255) not null,
      region varchar(255) not null,
-     email varchar(255) not null,
+     email varchar(255) not null
 
-     constraint unique_delivery unique (name, phone, zip, city, address, region, email)
+ --   constraint unique_delivery unique (name, phone, zip, city, address, region, email)
 );
 
 create table DataOrders.payment (
@@ -44,22 +44,24 @@ create table DataOrders.items (
 );
 
 create table DataOrders.orders (
-    order_uid varchar not null,
+    order_uid varchar(255) not null primary key ,
     track_number varchar(255) not null,
     entry varchar(255) not null,
     delivery bigint,
-    payment varchar(255),
-    locate varchar(255) not null ,
+    payment varchar(255) not null ,
+    items bigserial,
+    locale varchar(255) not null ,
     internal_signature varchar(255) not null ,
     customer_id varchar(255) not null ,
     delivery_service varchar(255) not null ,
     shardkey varchar(255) not null ,
     sm_id bigint not null ,
-    date_created date not null default current_date,
+    date_created timestamp not null default current_date,
     oof_shard varchar(255) not null,
 
     constraint fk_orders_delivery foreign key (delivery) references DataOrders.delivery(id),
-    constraint fk_orders_payment foreign key (payment) references DataOrders.payment(transaction)
+    constraint fk_orders_payment foreign key (payment) references DataOrders.payment(transaction),
+    constraint fk_orders_items foreign key (items) references DataOrders.items(chrt_id)
 );
 
 
