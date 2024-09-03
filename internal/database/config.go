@@ -1,6 +1,9 @@
 package database
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 type DBConfig struct {
 	Driver string `json:"driver" yaml:"driver"`
@@ -23,4 +26,11 @@ func (c *DBConfig) Validate() error {
 		return errors.New("driver not specified")
 	}
 	return nil
+}
+
+func (c *DBConfig) GetConfigInfo() string {
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
+		"password=%s dbname=%s sslmode=disable",
+		c.Host, c.Port, c.User, c.Passwd, c.DBName)
+	return psqlInfo
 }
