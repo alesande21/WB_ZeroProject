@@ -50,6 +50,7 @@ func Open(cfg *DBConfig) (*DBConnection, error) {
 	return &DBConnection{Conn: db}, nil
 }
 
-func (db *DBConnection) CreateRepository() {
-
+func CreateRepository(db *sql.DB) (DBRepository, error) {
+	var rep DBRepository = &postgresDBRepository{Conn: db}
+	return rep, nil
 }
