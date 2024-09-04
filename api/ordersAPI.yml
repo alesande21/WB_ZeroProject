@@ -1,0 +1,98 @@
+openapi: '3.0.3'
+info:
+    version: 1.0.0
+    title: Orders server
+paths:
+  /orders:
+    get:
+      responses:
+        '200':
+          description: "Заказ не найден"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Orders'
+        default:
+          description: 'Ошибка по запросу заказа'
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      summary: 'Создание и добавление заказа'
+      operationId: createOrder
+      tags:
+        - orders
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Order"
+        required: true
+      responses:
+        '201':
+          description: 'Заказ успешно создан'
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusMessage"
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /commands/{order_uid}:
+    get:
+      summary: 'Получение команды по идентификатору'
+      operationId: showOrderById
+      tags:
+        - orders
+      parameters:
+        - name: order_uid
+          in: path
+          required: true
+          description: The id of the order to retrieve
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        default:
+          description: 'Ошибка получения заказа по идентификатору'
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  schemas:
+    StatusMessage:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+            type: string
+    Order:
+
+    Orders:
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
