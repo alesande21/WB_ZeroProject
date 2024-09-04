@@ -29,7 +29,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Order"
+              $ref: "#/components/schemas/Orders"
         required: true
       responses:
         '201':
@@ -44,7 +44,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-  /commands/{order_uid}:
+  /orders/{order_uid}:
     get:
       summary: 'Получение команды по идентификатору'
       operationId: showOrderById
@@ -56,8 +56,8 @@ paths:
           required: true
           description: The id of the order to retrieve
           schema:
-            type: integer
-            format: int64
+            type: string
+            format: uuid
       responses:
         '200':
           description: ''
