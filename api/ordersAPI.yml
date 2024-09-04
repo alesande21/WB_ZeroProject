@@ -111,6 +111,21 @@ components:
         email:
           type: string
 
+    Payment:
+      type: object
+      required:
+        - transaction
+        - request_id
+        - currency
+        - provider
+        - amount
+        - payment_dt
+        - bank
+        - delivery_cost
+        - goods_total
+        - custom_fee
+      properties:
+
 
     Order:
       type: object
