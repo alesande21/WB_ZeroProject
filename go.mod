@@ -2,13 +2,18 @@ module WB_ZeroProject
 
 go 1.21.1
 
-require github.com/deepmap/oapi-codegen v1.16.3
+require (
+	github.com/deepmap/oapi-codegen v1.16.3
+	github.com/getkin/kin-openapi v0.118.0
+	github.com/gorilla/mux v1.8.0
+	github.com/oapi-codegen/runtime v1.1.1
+)
 
 require (
-	github.com/getkin/kin-openapi v0.118.0 // indirect
+	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.5 // indirect
-	github.com/gorilla/mux v1.8.0 // indirect
+	github.com/google/uuid v1.5.0 // indirect
 	github.com/invopop/yaml v0.1.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect

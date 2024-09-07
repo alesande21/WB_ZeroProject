@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 )
 
 type postgresDBRepository struct {
@@ -17,6 +18,19 @@ func (p *postgresDBRepository) QueryRow(query string, args ...interface{}) (erro
 }
 
 func (p *postgresDBRepository) Exec(query string, args ...interface{}) error {
+	return nil
+}
+
+func (p *postgresDBRepository) Ping() error {
+	if p == nil {
+		return nil
+	}
+
+	err := p.Conn.Ping()
+	if err != nil {
+		return fmt.Errorf("problems connecting to the database: %s", err.Error())
+	}
+
 	return nil
 }
 
