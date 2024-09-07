@@ -1,6 +1,7 @@
 package database
 
 import (
+	"WB_ZeroProject/pkg/server/api"
 	"database/sql"
 	"fmt"
 )
@@ -9,11 +10,11 @@ type postgresDBRepository struct {
 	Conn *sql.DB
 }
 
-func (p *postgresDBRepository) Query(query string, args ...interface{}) (error, error) {
+func (p *postgresDBRepository) Query(query string, args ...interface{}) (api.Orders, error) {
 	return nil, nil
 }
 
-func (p *postgresDBRepository) QueryRow(query string, args ...interface{}) (error, error) {
+func (p *postgresDBRepository) QueryRow(query string, args ...interface{}) (*api.Order, error) {
 	return nil, nil
 }
 

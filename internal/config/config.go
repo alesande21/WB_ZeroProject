@@ -18,15 +18,15 @@ type Config struct {
 	Connection        *database.DBConfig `json:"connection" yaml:"connection"`
 }
 
-func NewConfig() *Config {
+func newConfig() *Config {
 	cfg := &Config{}
 	cfg.LowercaseKeywords = false
 	return cfg
 }
 
 func GetDefaultConfig() (*Config, error) {
-	cfg := NewConfig()
-	err := cfg.LoadConfigParam("config.yml")
+	cfg := newConfig()
+	err := cfg.loadConfigParam("config.yml")
 	if err != nil {
 		return nil, err
 	}
@@ -38,14 +38,18 @@ func GetConfig(filePath string) (*Config, error) {
 	return nil, nil
 }
 
-func (c *Config) Validate() error {
+func (c *Config) GetDBsConfig() *database.DBConfig {
+	return c.Connection
+}
+
+func (c *Config) validate() error {
 	if c.Connection == nil {
 		return c.Connection.Validate()
 	}
 	return nil
 }
 
-func (c *Config) LoadConfigParam(filePath string) error {
+func (c *Config) loadConfigParam(filePath string) error {
 	_, err := os.Stat(filePath)
 	if !(err == nil || !os.IsNotExist(err)) {
 		return ErrorNotFoundConfig
@@ -67,7 +71,7 @@ func (c *Config) LoadConfigParam(filePath string) error {
 		return fmt.Errorf("failed unmarshalling, %w", err)
 	}
 
-	err = c.Validate()
+	err = c.validate()
 	if err != nil {
 		return fmt.Errorf("failed driver validation, %w", err)
 	}
