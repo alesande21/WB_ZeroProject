@@ -7,8 +7,9 @@ import (
 	"WB_ZeroProject/pkg/server/api"
 	"flag"
 	"fmt"
-	middleware "github.com/deepmap/oapi-codegen/pkg/middleware"
+	middleware "github.com/deepmap/oapi-codegen/pkg/chi-middleware"
 	"github.com/gorilla/mux"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -19,6 +20,23 @@ var (
 	Ip   = flag.String("ip", api.Localhost, "Set ip address")
 	Port = flag.Int("port", api.DefaultPort, "Set instance port")
 )
+
+func InitSchema(s *api.OrdersServer, pathToSchema string) error {
+	schema, err := ioutil.ReadFile(pathToSchema)
+	if err != nil {
+		log.Println("Не удалось прочитать фаил с схемой")
+		return err
+	}
+
+	err = s.DB.Exec(string(schema))
+
+	if err != nil {
+		log.Println("Не удалось загрузить схему")
+		return err
+	}
+
+	return nil
+}
 
 func main() {
 	flag.Parse()
@@ -46,7 +64,7 @@ func main() {
 		}
 	}(conn)
 
-	rep, err := database.CreateRepository(conn.GetConn())
+	rep, err := database.CreatePostgresRepository(conn.GetConn())
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Problem with CreateRepository\n: %s", err)
@@ -54,6 +72,13 @@ func main() {
 	}
 
 	ordersServer := api.OrdersServer{DB: rep}
+
+	err := InitSchema(&ordersServer, "/resources/schema.sql")
+
+	if err != nil {
+		log.Println("Не удалось загрузить схему")
+		return
+	}
 
 	r := mux.NewRouter()
 

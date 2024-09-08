@@ -35,6 +35,11 @@ func (p *postgresDBRepository) Ping() error {
 	return nil
 }
 
+func CreatePostgresRepository(db *sql.DB) (DBRepository, error) {
+	var rep DBRepository = &postgresDBRepository{Conn: db}
+	return rep, nil
+}
+
 /*
 func (p *postgresDBRepository) Query(query string, args ...interface{}) (api.Commands, error) {
 	pErr := p.Conn.Ping()
