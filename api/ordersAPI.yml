@@ -1,12 +1,41 @@
 openapi: '3.0.3'
 info:
     version: 1.0.0
-    title: Orders server
+    title: Order Management API
+    description: |
+      API для управления доставкой.
+servers:
+  - url: /api
+    description: Локальный сервер API
+
 paths:
-  /orders:
+  /api/ping:
     get:
+      summary: Првоерка доступности сервера
+      description: |
+        Этот эндпоинт используется для проверки готовности сервера обрабатывать запросы. 
+
       responses:
-        '200':
+        "200":
+          description: |
+            Сервер готов обрабатывать запросы, если отвечает "200 OK".
+        "500":
+          description: Сервер не готов обрабатывать запросы, если ответ статусом 500 или любой другой, кроме 200.
+
+  /api/orders:
+    get:
+      summary: Получение списка заказов
+      description: |
+        Список заказов.
+        
+        Если фильтры не заданы возвращаются все заказы.
+      operationId: getOrders
+
+
+
+
+      responses:
+        "200":
           description: "Успешно получен список заказов"
           content:
             application/json:
@@ -74,15 +103,61 @@ paths:
 
 components:
   schemas:
-    StatusMessage:
+    orderId:
+      type: string
+      description: Уникальный идентификатор заказа
+      example: b563feb7b2b84b6test1
+      maxLength: 100
+    deliveryName:
+      type: string
+      description: Полное навзание доставки
+      maxLength: 100
+    deliveryPhone:
+      type: string
+      description: Номер телофона
+      maxLength: 50
+    deliveryZip:
+      type: string
+      description: Почтовый индекс
+      maxLength: 20
+    deliveryCity:
+      type: string
+      description: Город доствки
+      maxLength: 30
+    deliveryAddress:
+      type: string
+      description: Адрес доставки
+      maxLength: 100
+    deliveryRegion:
+      type: string
+      description: Регион доставки
+      maxLength: 50
+    deliveryEmail:
+      type: string
+      description: Электронный адрес адресата доставки
+      format: email
+      maxLength: 50
+    delivery:
       type: object
-      required:
-        - message
+      description: Информация о доставке
       properties:
-        message:
-            type: string
-    Delivery:
-      type: object
+        id:
+          $ref: "#/components/schemas/orderId"
+        name:
+          $ref: "#/components/schemas/deliveryName"
+        phone:
+          $ref: "#/components/schemas/deliveryPhone"
+        zip:
+          $ref: "#/components/schemas/deliveryZip"
+        city:
+          $ref: "#/components/schemas/deliveryCity"
+        address:
+          $ref: "#/components/schemas/deliveryAddress"
+        region:
+          $ref: "#/components/schemas/deliveryRegion"
+        email:
+          $ref: "#/components/schemas/deliveryEmail"
+
       required:
         - id
         - name
@@ -92,28 +167,81 @@ components:
         - address
         - region
         - email
-      properties:
-        id:
-          type: integer
-          format: int64
-        name:
-          type: string
-        phone:
-          type: string
-        zip:
-          type: string
-        city:
-          type: string
-        address:
-          type: string
-        region:
-          type: string
-        email:
-          type: string
-          format: email
+      example:
+        id: b563feb7b2b84b6test1
+        name: Test Testov
+        phone: +9720000000
+        zip: 2639809
+        city: Kiryat Mozkin
+        address: Ploshad Mira 15
+        region: Kraiot
+        email: test@gmail.com"
 
-    Payment:
+#    transactionId:
+#      type: string
+#      description: Номер транзакции
+#      maxLength: 100
+    transactionRequestId:
+      type: string
+      description: Номер транзакции
+      maxLength: 100
+    transactionCurrency:
+      type: string
+      description: Валюта транзакции
+      maxLength: 50
+    transactionProvider:
+      type: string
+      description: Поставщик
+      maxLength: 100
+    transactionAmount:
+      type: number
+      description: Сумма транзакции
+      format: double
+    transactionPaymentDt:
+      type: string
+      description: Время транзакции в формате Unix-времени
+      example: 1637907727
+      maxLength: 50
+    transactionBank:
+      type: string
+      description: Банк транзакции
+    transactionDeliveryCost:
+      type: number
+      description: Стоимость доставки
+      format: double
+    transactionGoodsTotal:
+      type: number
+      description: Общая стоимость товаров без учета доставки
+      format: double
+    transactionCustomFee:
+      type: number
+      description: Дополнительные расходы на доставку
+      format: double
+    payment:
       type: object
+      description: Информация о оплате заказа
+      properties:
+        transaction:
+          $ref: "#/components/schemas/orderId"
+        request_id:
+          $ref: "#/components/schemas/transactionRequestId"
+        currency:
+          $ref: "#/components/schemas/transactionCurrency"
+        provider:
+          $ref: "#/components/schemas/transactionProvider"
+        amount:
+          $ref: "#/components/schemas/transactionAmount"
+        payment_dt:
+          $ref: "#/components/schemas/transactionPaymentDt"
+        bank:
+          $ref: "#/components/schemas/transactionBank"
+        delivery_cost:
+          $ref: "#/components/schemas/transactionDeliveryCost"
+        goods_total:
+          $ref: "#/components/schemas/transactionGoodsTotal"
+        custom_fee:
+          $ref: "#/components/schemas/transactionCustomFee"
+
       required:
         - transaction
         - request_id
@@ -125,33 +253,10 @@ components:
         - delivery_cost
         - goods_total
         - custom_fee
-      properties:
-        transaction:
-          type: string
-        #  format: uuid
-        request_id:
-          type: string
-        currency:
-          type: string
-        provider:
-          type: string
-        amount:
-          type: number
-          format: double
-        payment_dt:
-          type: number
-          format: double
-        bank:
-          type: string
-        delivery_cost:
-          type: number
-          format: double
-        goods_total:
-          type: number
-          format: double
-        custom_fee:
-          type: number
-          format: double
+
+
+
+
 
     Item:
       type: object
@@ -258,15 +363,52 @@ components:
     #  maximum: 10
       items:
         $ref: "#/components/schemas/Order"
-
-    Error:
+    StatusMessage:
       type: object
       required:
-        - code
         - message
       properties:
-        code:
-          type: integer
-          format: int32
         message:
           type: string
+
+    errorResponse:
+      type: object
+      description: Используется для возвращения ошибки пользователю
+      properties:
+        reason:
+          type: string
+          description: Описание ошибки в свободной форме
+          minLength: 5
+      required:
+        - reason
+      example:
+        reason: <объяснение, почему запрос пользователя не может быть обработан>
+
+  parameters:
+    paginationLimit:
+      in: query
+      name: limit
+      required: false
+      description: |
+        Максимальное число возвращаемых объектов. Используется для запросов с пагинацией.
+
+        Сервер должен возвращать максимальное допустимое число объектов.
+      schema:
+        type: integer
+        format: int32
+        minimum: 0
+        maximum: 50
+        example: 5
+      #  default: 5
+    paginationOffset:
+      in: query
+      name: offset
+      required: false
+      description: |
+        Какое количество объектов должно быть пропущено с начала. Используется для запросов с пагинацией.
+      schema:
+        type: integer
+        format: int32
+        example: 0
+        #  default: 0
+        minimum: 0
