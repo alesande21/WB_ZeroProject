@@ -9,4 +9,5 @@ func main() {
 	_, err := os.Stat("file.txt")
 	stat := os.IsNotExist(err)
 	fmt.Println(!stat)
+	// old main
 }
