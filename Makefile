@@ -1,4 +1,4 @@
-all: buildDefault runDefault
+all: build run
 
 install:
 	go install github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@latest
@@ -11,16 +11,37 @@ ver:
 	oapi-codegen -version
 
 genServer:
-	oapi-codegen --config=configs/oapi/configServer.yaml api/ordersAPI.yml
+	oapi-codegen --config=configs/oapi/configServer.yaml api/openapi.yml
 
-buildDefault:
-	go build ./cmd/WB_ZeroProject/main.go
+build:
+	#go build ./cmd/app/
+	go build -o ./bin/app ./cmd/app
+#	go build ./src/cmd/app/
+	#go build -o build/server ./server
 
-runDefault:
-	./main.exe
+run:
+	./app
 
 init:
-	go mod init "WB_ZeroProject"
+	go mod init "AvitoProject"
 
 tidy:
 	go mod tidy
+
+test:
+	go test .\internal\service\tender_test.go
+
+cover:
+	go test .\internal\service\tender_test.go -cover
+
+test_full:
+	go test ./...
+
+cover_full:
+	go test ./... -cover
+
+cover_with_text:
+	go test ./... -coverprofile=coverage.txt
+	go tool cover -html coverage.txt -o index.html
+
+.PHONY: all, install, ver, genServer, build, run, init, tidy, test, cover, test_full, cover_full, cover_with_text

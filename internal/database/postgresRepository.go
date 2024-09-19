@@ -1,35 +1,39 @@
 package database
 
 import (
-	"WB_ZeroProject/pkg/server/api"
+	"context"
 	"database/sql"
 	"fmt"
+	_ "github.com/lib/pq"
 )
 
 type postgresDBRepository struct {
 	Conn *sql.DB
+	//sync.Mutex
 }
 
-func (p *postgresDBRepository) Query(query string, args ...interface{}) (api.Orders, error) {
-	return nil, nil
+func (p *postgresDBRepository) Query(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
+	return p.Conn.QueryContext(ctx, query, args...)
 }
 
-func (p *postgresDBRepository) QueryRow(query string, args ...interface{}) (*api.Order, error) {
-	return nil, nil
+func (p *postgresDBRepository) QueryRow(ctx context.Context, query string, args ...any) *sql.Row {
+	return p.Conn.QueryRowContext(ctx, query, args...)
 }
 
-func (p *postgresDBRepository) Exec(query string, args ...interface{}) error {
-	return nil
+func (p *postgresDBRepository) Exec(ctx context.Context, query string, args ...any) (sql.Result, error) {
+	return p.Conn.ExecContext(ctx, query, args...)
 }
 
 func (p *postgresDBRepository) Ping() error {
 	if p == nil {
 		return nil
 	}
+	//p.Mutex.Lock()
+	//defer p.Unlock()
 
 	err := p.Conn.Ping()
 	if err != nil {
-		return fmt.Errorf("problems connecting to the database: %s", err.Error())
+		return fmt.Errorf("проблема с поключением к базе данных: %s", err.Error())
 	}
 
 	return nil

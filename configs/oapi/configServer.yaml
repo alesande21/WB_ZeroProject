@@ -1,5 +1,5 @@
-output: pkg/server/api/server.gen.go
-package: api
+output: regenerateApi/server.gen.go
+package: http
 generate:
   # other servers are available!
   gorilla-server: true

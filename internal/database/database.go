@@ -1,10 +1,13 @@
 package database
 
-import "WB_ZeroProject/pkg/server/api"
+import (
+	"database/sql"
+	"golang.org/x/net/context"
+)
 
 type DBRepository interface {
-	Query(query string, args ...interface{}) (api.Orders, error)    //  (api.Commands, error)
-	QueryRow(query string, args ...interface{}) (*api.Order, error) // (*api.Command, error)
-	Exec(query string, args ...interface{}) error
+	Query(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRow(ctx context.Context, query string, args ...any) *sql.Row
+	Exec(ctx context.Context, query string, args ...any) (sql.Result, error)
 	Ping() error
 }

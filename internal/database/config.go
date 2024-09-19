@@ -7,11 +7,12 @@ import (
 
 type DBConfig struct {
 	Driver string `json:"driver" yaml:"driver"`
-	Host   string `json:"host" yaml:"host"`
-	Port   int    `json:"port" yaml:"port"`
-	User   string `json:"user" yaml:"user"`
-	Passwd string `json:"passwd" yaml:"passwd"`
-	DBName string `json:"DBName" yaml:"DBName"`
+	URL    string `env-required:"true" json:"url" yaml:"url" env:"POSTGRES_CONN"`
+	Host   string `env-required:"true" json:"host" yaml:"host" env:"POSTGRES_HOST"`
+	Port   int    `env-required:"true" json:"port" yaml:"port" env:"POSTGRES_PORT"`
+	User   string `env-required:"true" json:"user" yaml:"user" env:"POSTGRES_USERNAME"`
+	Passwd string `env-required:"true" json:"passwd" yaml:"passwd" env:"POSTGRES_PASSWORD"`
+	DBName string `env-required:"true" json:"DBName" yaml:"DBName" env:"POSTGRES_DATABASE"`
 }
 
 func (c *DBConfig) Validate() error {
@@ -20,7 +21,7 @@ func (c *DBConfig) Validate() error {
 	}
 
 	switch c.Driver {
-	case "postgresql":
+	case "postgres":
 
 	default:
 		return errors.New("driver not specified")

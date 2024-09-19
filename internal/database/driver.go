@@ -1,9 +1,10 @@
 package database
 
 import (
-	"WB_ZeroProject/internal/colorAttribute"
+	"AvitoProject/internal/colorAttribute"
 	"database/sql"
 	"fmt"
+	_ "github.com/lib/pq"
 	"log"
 )
 
@@ -40,7 +41,9 @@ func (db *DBConnection) Ping() error {
 func Open(cfg *DBConfig) (*DBConnection, error) {
 	psqlInfo := cfg.GetConfigInfo()
 
-	db, err := sql.Open(cfg.Driver, psqlInfo)
+	log.Println(cfg.URL)
+	log.Println(psqlInfo)
+	db, err := sql.Open(cfg.Driver, cfg.URL)
 	if err != nil {
 		return nil, fmt.Errorf("driver not found, %s", cfg.Driver)
 	}
@@ -50,6 +53,13 @@ func Open(cfg *DBConfig) (*DBConnection, error) {
 	return &DBConnection{Conn: db}, nil
 }
 
-func (db *DBConnection) GetConn() *sql.DB {
+func (db *DBConnection) GetConn() (*sql.DB, error) {
+	if db.Conn == nil {
+		return nil, fmt.Errorf("драйвер подключения отсутсвует")
+	}
+	return db.Conn, nil
+}
+
+func (db *DBConnection) GetConn2() *sql.DB {
 	return db.Conn
 }

@@ -1,8 +1,9 @@
 lowercaseKeywords: true
 connection:
-  driver: postgresql
+  driver: postgres
+  url: ""
   host: 127.0.0.1
   port: 5432
   user: postgres
   passwd: postgres
-  dbname: postgres@localhost
+  dbname: postgres

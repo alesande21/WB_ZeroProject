@@ -1,20 +1,21 @@
 package config
 
 import (
-	"WB_ZeroProject/internal/database"
-	"encoding/json"
+	"AvitoProject/internal/database"
 	"errors"
 	"fmt"
+	"github.com/ilyakaznacheev/cleanenv"
+	"github.com/invopop/yaml"
 	"io"
 	"os"
 )
 
 var (
-	ErrorNotFoundConfig = errors.New("Config not found!")
+	ErrorNotFoundConfig = errors.New("config not found")
 )
 
 type Config struct {
-	LowercaseKeywords bool               `json:"lowercase_keywords" yaml:"lowercase_keywords"`
+	LowercaseKeywords bool               `json:"lowercaseKeywords" yaml:"lowercaseKeywords"`
 	Connection        *database.DBConfig `json:"connection" yaml:"connection"`
 }
 
@@ -26,16 +27,28 @@ func newConfig() *Config {
 
 func GetDefaultConfig() (*Config, error) {
 	cfg := newConfig()
-	err := cfg.loadConfigParam("config.yml")
+	//err := cfg.loadConfigParam("src/internal/config/config.yml")
+	err := cfg.loadEnvParam()
 	if err != nil {
 		return nil, err
 	}
+
 	return cfg, nil
 }
 
 func GetConfig(filePath string) (*Config, error) {
+	if filePath == "" {
+		return nil, fmt.Errorf("путь до конфига не указан")
+	}
 
-	return nil, nil
+	cfg := newConfig()
+	err := cfg.loadConfigParam(filePath)
+	//err := cfg.loadEnvParam()
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
 }
 
 func (c *Config) GetDBsConfig() *database.DBConfig {
@@ -63,12 +76,17 @@ func (c *Config) loadConfigParam(filePath string) error {
 
 	buf, err := io.ReadAll(file)
 	if err != nil {
-		return fmt.Errorf("failed to read config, %w", err)
+		return fmt.Errorf("failed to read config, %w, %s", err, string(buf))
 	}
 
-	err = json.Unmarshal(buf, c.Connection)
+	err = yaml.Unmarshal(buf, c)
 	if err != nil {
 		return fmt.Errorf("failed unmarshalling, %w", err)
+	}
+
+	err = cleanenv.UpdateEnv(c)
+	if err != nil {
+		return fmt.Errorf("error updating env: %w", err)
 	}
 
 	err = c.validate()
@@ -76,5 +94,15 @@ func (c *Config) loadConfigParam(filePath string) error {
 		return fmt.Errorf("failed driver validation, %w", err)
 	}
 
+	return nil
+}
+
+func (c *Config) loadEnvParam() error {
+	var newConf database.DBConfig
+	if err := cleanenv.ReadEnv(&newConf); err != nil {
+		return err
+	}
+	c.Connection = &newConf
+	c.Connection.Driver = "postgres"
 	return nil
 }
