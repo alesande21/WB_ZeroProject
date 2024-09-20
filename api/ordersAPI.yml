@@ -181,39 +181,39 @@ components:
 #      type: string
 #      description: Номер транзакции
 #      maxLength: 100
-    transactionRequestId:
+    paymentRequestId:
       type: string
       description: Номер транзакции
       maxLength: 100
-    transactionCurrency:
+    paymentCurrency:
       type: string
       description: Валюта транзакции
       maxLength: 50
-    transactionProvider:
+    paymentProvider:
       type: string
       description: Поставщик
       maxLength: 100
-    transactionAmount:
+    paymentAmount:
       type: number
       description: Сумма транзакции
       format: double
-    transactionPaymentDt:
+    paymentDt:
       type: string
       description: Время транзакции в формате Unix-времени
       example: 1637907727
       maxLength: 50
-    transactionBank:
+    paymentBank:
       type: string
       description: Банк транзакции
-    transactionDeliveryCost:
+    paymentDeliveryCost:
       type: number
       description: Стоимость доставки
       format: double
-    transactionGoodsTotal:
+    paymentGoodsTotal:
       type: number
       description: Общая стоимость товаров без учета доставки
       format: double
-    transactionCustomFee:
+    paymentCustomFee:
       type: number
       description: Дополнительные расходы на доставку
       format: double
@@ -224,23 +224,23 @@ components:
         transaction:
           $ref: "#/components/schemas/orderId"
         request_id:
-          $ref: "#/components/schemas/transactionRequestId"
+          $ref: "#/components/schemas/paymentRequestId"
         currency:
-          $ref: "#/components/schemas/transactionCurrency"
+          $ref: "#/components/schemas/paymentCurrency"
         provider:
-          $ref: "#/components/schemas/transactionProvider"
+          $ref: "#/components/schemas/paymentProvider"
         amount:
-          $ref: "#/components/schemas/transactionAmount"
+          $ref: "#/components/schemas/paymentAmount"
         payment_dt:
-          $ref: "#/components/schemas/transactionPaymentDt"
+          $ref: "#/components/schemas/paymentDt"
         bank:
-          $ref: "#/components/schemas/transactionBank"
+          $ref: "#/components/schemas/paymentBank"
         delivery_cost:
-          $ref: "#/components/schemas/transactionDeliveryCost"
+          $ref: "#/components/schemas/paymentDeliveryCost"
         goods_total:
-          $ref: "#/components/schemas/transactionGoodsTotal"
+          $ref: "#/components/schemas/paymentGoodsTotal"
         custom_fee:
-          $ref: "#/components/schemas/transactionCustomFee"
+          $ref: "#/components/schemas/paymentCustomFee"
 
       required:
         - transaction
@@ -254,12 +254,77 @@ components:
         - goods_total
         - custom_fee
 
-
-
-
-
-    Item:
+    itemChrtId:
+      type: integer
+      description: Уникальный номер товара
+      format: int64
+    trackNumber:
+      type: string
+      description: Номер отслеживания товара
+      maxLength: 100
+    itemPrice:
+      type: number
+      description: Цена товара до скидки
+      format: double
+    itemRid:
+      type: string
+      description: Уникальный идентификатор записи товара в системе
+      maxLength: 100
+    itemName:
+      type: string
+      description: Название товара
+      maxLength: 100
+    itemSale:
+      type: number
+      description: Размер скидки на товар в процентах
+      format: double
+    itemSize:
+      type: string
+      description: Размер товара
+      maxLength: 50
+    itemTotalPrice:
+      type: number
+      description: Итоговая цена с учетом скидки
+      format: double
+    itemNmId:
+      type: integer
+      description: Внутренний идентификатор товара на торговой площадке или в системе продаж
+      format: int64
+    itemBrand:
+      type: string
+      description: Бренд товара.
+      maxLength: 50
+    itemStatus:
+      type: integer
+      description: Статус товара или заказа
+      format: int32
+    item:
       type: object
+      description: Информация о товаре
+      properties:
+        chrt_id:
+          $ref: "#/components/schemas/itemChrtId"
+        track_number:
+          $ref: "#/components/schemas/trackNumber"
+        price:
+          $ref: "#/components/schemas/itemPrice"
+        rid:
+          $ref: "#/components/schemas/itemRid"
+        name:
+          $ref: "#/components/schemas/itemName"
+        sale:
+          $ref: "#/components/schemas/itemSale"
+        size:
+          $ref: "#/components/schemas/itemSize"
+        total_price:
+          $ref: "#/components/schemas/itemTotalPrice"
+        nm_id:
+          $ref: "#/components/schemas/itemNmId"
+        brand:
+          $ref: "#/components/schemas/itemBrand"
+        status:
+          $ref: "#/components/schemas/itemStatus"
+
       required:
         - chrt_id
         - track_number
@@ -272,38 +337,69 @@ components:
         - nm_id
         - brand
         - status
-      properties:
-        chrt_id:
-          type: integer
-          format: int64
-        track_number:
-          type: string
-        price:
-          type: number
-          format: double
-        rid:
-          type: string
-        #  format: uuid
-        sale:
-          type: number
-          format: double
-        size:
-          type: string
-        #  format: int32
-        total_price:
-          type: number
-          format: double
-        nm_id:
-          type: integer
-          format: int64
-        brand:
-          type: string
-        status:
-          type: integer
-          format: int32
 
-    Order:
+    items:
+      type: array
+      description: Список товаров
+      items:
+        $ref: "#/components/schemas/item"
+
+    entry:
+        type: string
+        description: Код тороговой площадки или компании
+        maxLength: 50
+    orderLocale:
+      type: string
+      description: Язык или региональные настройки
+      maxLength: 50
+    orderInternalSignature:
+      type: string
+      description: Внутренняя подпись для проверки или идентификации заказа
+      maxLength: 50
+    customerId:
+      type: string
+      description: Идентификатор покупателя
+      maxLength: 100
+    deliveryService:
+      type: string
+      description: Название случжбы доставки
+      maxLength: 100
+
+    order:
       type: object
+      description: Детали заказа
+      properties:
+        order_uid:
+          $ref: "#/components/schemas/orderId"
+        track_number:
+          $ref: "#/components/schemas/trackNumber"
+        entry:
+          $ref: "#/components/schemas/entry"
+        delivery:
+          $ref: "#/components/schemas/delivery"
+        payment:
+          $ref: "#/components/schemas/payment"
+        items:
+          $ref: "#/components/schemas/items"
+        locale:
+          $ref: "#/components/schemas/orderLocale"
+        internal_signature:
+          $ref: "#/components/schemas/orderInternalSignature"
+        customer_id:
+          $ref: "#/components/schemas/customerId"
+        delivery_service:
+          $ref: "#/components/schemas/customerId"
+        shardkey:
+          type: string
+        sm_id:
+          type: integer
+          format: int64
+        date_created:
+          type: string
+          format: date-time
+        oof_shard:
+          type: string
+
       required:
         - order_uid
         - track_number
@@ -319,50 +415,13 @@ components:
         - sm_id
         - date_created
         - oof_shard
-      properties:
-        order_uid:
-          type: string
-        #  format: uuid
-        track_number:
-          type: string
-        entry:
-          type: string
-        delivery:
-         # type: object
-         # items:
-            $ref: "#/components/schemas/Delivery"
-        payment:
-         # type: object
-         # items:
-            $ref: "#/components/schemas/Payment"
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/Item"
-        locale:
-          type: string
-        internal_signature:
-          type: string
-        customer_id:
-          type: string
-        delivery_service:
-          type: string
-        shardkey:
-          type: string
-        sm_id:
-          type: integer
-          format: int64
-        date_created:
-          type: string
-          format: date-time
-        oof_shard:
-          type: string
-
-    Orders:
+        -
+    orders:
       type: array
-    #  maximum: 10
+      description: Список заказов
       items:
-        $ref: "#/components/schemas/Order"
+        $ref: "#/components/schemas/order"
+
     StatusMessage:
       type: object
       required:
