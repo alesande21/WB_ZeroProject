@@ -205,6 +205,7 @@ components:
     paymentBank:
       type: string
       description: Банк транзакции
+      maxLength: 100
     paymentDeliveryCost:
       type: number
       description: Стоимость доставки

@@ -1,67 +1,60 @@
-drop schema if exists DataOrders cascade;
-
-create schema if not exists DataOrders;
-
-create table DataOrders.delivery (
-                                     id serial primary key,
-                                     name varchar(255) not null,
-                                     phone varchar(255) not null,
-                                     zip varchar(255) not null,
-                                     city varchar(255) not null,
-                                     address varchar(255) not null,
-                                     region varchar(255) not null,
-                                     email varchar(255) not null
+CREATE TABLE IF NOT EXISTS delivery (
+     id SERIAL PRIMARY KEY,
+     order_id VARCHAR(100) REFERENCES orders(order_uid) ON DELETE CASCADE,
+     name VARCHAR(100) NOT NULL ,
+     phone VARCHAR(50) NOT NULL ,
+     zip VARCHAR(20) NOT NULL ,
+     city VARCHAR(30) NOT NULL ,
+     address VARCHAR(100) NOT NULL ,
+     region VARCHAR(50) NOT NULL ,
+     email VARCHAR(50) NOT NULL
 
     --   constraint unique_delivery unique (name, phone, zip, city, address, region, email)
 );
 
-create table DataOrders.payment (
-                                    transaction varchar(255) primary key,
-                                    request_id varchar(255),
-                                    currency varchar(255) not null,
-                                    provider varchar(255) not null,
-                                    amount float not null ,
-                                    payment_dt integer not null ,
-                                    bank varchar(255) not null ,
-                                    delivery_cost float not null ,
-                                    goods_total integer not null ,
-                                    custom_fee float default 0
-
+CREATE TABLE IF NOT EXISTS payment (
+    transaction VARCHAR(100) REFERENCES orders(order_uid) ON DELETE CASCADE,
+    request_id VARCHAR(100) NOT NULL ,
+    currency VARCHAR(50) NOT NULL ,
+    provider VARCHAR(100) NOT NULL ,
+    amount FLOAT NOT NULL  ,
+    payment_dt INTEGER NOT NULL  ,
+    bank VARCHAR(100) NOT NULL  ,
+    delivery_cost FLOAT NOT NULL  ,
+    goods_total INTEGER NOT NULL  ,
+    custom_fee FLOAT NOT NULL
 );
 
-create table DataOrders.items (
-                                  chrt_id bigserial primary key ,
-                                  track_number varchar(255) not null ,
-                                  price float not null ,
-                                  rid varchar(255) not null ,
-                                  name varchar(255) not null ,
-                                  sale float not null ,
-                                  size varchar(255) not null ,
-                                  total_price float not null ,
-                                  nm_id bigint not null ,
-                                  brand varchar(255) not null ,
-                                  status int not null
+CREATE TABLE IF NOT EXISTS items (
+    chrt_id BIGINT PRIMARY KEY ,
+    track_number VARCHAR(100) NOT NULL  ,
+    price FLOAT NOT NULL  ,
+    rid VARCHAR(100) NOT NULL  ,
+    name VARCHAR(100) NOT NULL  ,
+    sale FLOAT NOT NULL  ,
+    size VARCHAR(50) NOT NULL  ,
+    total_price FLOAT NOT NULL  ,
+    nm_id BIGINT NOT NULL  ,
+    brand VARCHAR(50) NOT NULL  ,
+    status INT NOT NULL
 );
 
-create table DataOrders.orders (
-                                   order_uid varchar(255) not null primary key ,
-                                   track_number varchar(255) not null,
-                                   entry varchar(255) not null,
-                                   delivery bigint,
-                                   payment varchar(255) not null ,
-                                   items bigserial,
-                                   locale varchar(255) not null ,
-                                   internal_signature varchar(255) not null ,
-                                   customer_id varchar(255) not null ,
-                                   delivery_service varchar(255) not null ,
-                                   shardkey varchar(255) not null ,
-                                   sm_id bigint not null ,
-                                   date_created timestamp not null default current_date,
-                                   oof_shard varchar(255) not null,
+CREATE TABLE IF NOT EXISTS orders (
+    order_uid VARCHAR(100) PRIMARY KEY ,
+    track_number VARCHAR(100) NOT NULL ,
+    entry VARCHAR(50) NOT NULL ,
+    locale VARCHAR(50) NOT NULL  ,
+    internal_signature VARCHAR(50) NOT NULL  ,
+    customer_id VARCHAR(100) NOT NULL  ,
+    delivery_service VARCHAR(100) NOT NULL  ,
+    shardkey VARCHAR(10) NOT NULL  ,
+    sm_id BIGINT NOT NULL  ,
+    date_created TIMESTAMPTZ NOT NULL,
+    oof_shard VARCHAR(5) NOT NULL,
 
-                                   constraint fk_orders_delivery foreign key (delivery) references DataOrders.delivery(id),
-                                   constraint fk_orders_payment foreign key (payment) references DataOrders.payment(transaction),
-                                   constraint fk_orders_items foreign key (items) references DataOrders.items(chrt_id)
+    constraint fk_orders_delivery foreign key (order_uid) references delivery(id),
+    constraint fk_orders_payment foreign key (order_uid) references payment(transaction),
+    constraint fk_orders_items foreign key (order_uid) references items(chrt_id)
 );
 
 
