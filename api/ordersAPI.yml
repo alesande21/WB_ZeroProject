@@ -30,76 +30,74 @@ paths:
         
         Если фильтры не заданы возвращаются все заказы.
       operationId: getOrders
-
-
-
-
+      parameters:
+        - $ref: "#/components/parameters/paginationLimit"
+        - $ref: "#/components/parameters/paginationOffset"
       responses:
         "200":
-          description: "Успешно получен список заказов"
+          description: Успешно получен список заказов
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Orders'
-        default:
-          description: 'Ошибка по запросу заказа'
+                  $ref: '#/components/schemas/order'
+        "400":
+          description: Неверный формат запроса или его параметры.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: "#/components/schemas/errorResponse"
+  /api/orders/new:
     post:
-      summary: 'Создание и добавление заказа'
+      summary: Создание нового заказа
+      description: Создание нового заказа с заданными параметрами.
       operationId: createOrder
-      tags:
-        - orders
       requestBody:
+        description: Данные нового заказа
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Orders"
-        required: true
+              type: array
+              items:
+                $ref: "#/components/schemas/order"
       responses:
-        '201':
-          description: 'Заказ успешно создан'
+        "200":
+          description: Заказ успешно создан
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/StatusMessage"
-        default:
-          description: unexpected error
+                $ref: "#/components/schemas/order"
+        "400":
+          description: Ошибка при создании заказа
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-  /orders/{order_uid}:
+                $ref: "#/components/schemas/errorResponse"
+  /api/orders/{order_uid}:
     get:
-      summary: 'Получение команды по идентификатору'
-      operationId: showOrderById
-      tags:
-        - orders
+      summary: Получение заказа по идентификатору
+      operationId: getOrderById
       parameters:
         - name: order_uid
           in: path
           required: true
-          description: The id of the order to retrieve
           schema:
-            type: string
-          #  format: uuid
+            $ref: "#/components/schemas/orderId"
       responses:
-        '200':
+        "200":
           description: 'Заказ по идентификатору найден'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Order'
-        default:
-          description: 'Ошибка получения заказа по идентификатору'
+                $ref: '#/components/schemas/order'
+        "400":
+          description: Ошибка получения заказа по идентификатору
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: "#/components/schemas/errorResponse"
 
 components:
   schemas:
@@ -362,8 +360,24 @@ components:
       maxLength: 100
     deliveryService:
       type: string
-      description: Название случжбы доставки
+      description: Название случбы доставки
       maxLength: 100
+    shardKey:
+      type: string
+      description: Ключ шардирования для распределения данных по различным серверам или базам данных.
+      maxLength: 10
+    smId:
+      type: integer
+      description: Идентификатор партнера или магазина.
+      maxLength: int64
+    orderDateCreated:
+      type: string
+      description: Дата и время создания заказа
+      example: 2021-11-26T06:22:19Z
+    orderOofShard:
+      type: string
+      description: Дополнительное поле для шардирования
+      maxLength: 5
 
     order:
       type: object
@@ -388,17 +402,15 @@ components:
         customer_id:
           $ref: "#/components/schemas/customerId"
         delivery_service:
-          $ref: "#/components/schemas/customerId"
+          $ref: "#/components/schemas/deliveryService"
         shardkey:
-          type: string
+          $ref: "#/components/schemas/shardKey"
         sm_id:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/smId"
         date_created:
-          type: string
-          format: date-time
+          $ref: "#/components/schemas/orderDateCreated"
         oof_shard:
-          type: string
+          $ref: "#/components/schemas/orderOofShard"
 
       required:
         - order_uid
@@ -415,20 +427,12 @@ components:
         - sm_id
         - date_created
         - oof_shard
-        -
+
     orders:
       type: array
       description: Список заказов
       items:
         $ref: "#/components/schemas/order"
-
-    StatusMessage:
-      type: object
-      required:
-        - message
-      properties:
-        message:
-          type: string
 
     errorResponse:
       type: object
