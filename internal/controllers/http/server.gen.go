@@ -4,10 +4,10 @@
 package http
 
 import (
-	entity2 "AvitoProject/internal/entity"
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -17,64 +17,312 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gorilla/mux"
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
+
+// CustomerId Идентификатор покупателя
+type CustomerId = string
+
+// Delivery Информация о доставке
+type Delivery struct {
+	// Address Адрес доставки
+	Address DeliveryAddress `json:"address"`
+
+	// City Город доствки
+	City DeliveryCity `json:"city"`
+
+	// Email Электронный адрес адресата доставки
+	Email DeliveryEmail `json:"email"`
+
+	// Id Уникальный идентификатор заказа
+	Id OrderId `json:"id"`
+
+	// Name Полное навзание доставки
+	Name DeliveryName `json:"name"`
+
+	// Phone Номер телофона
+	Phone DeliveryPhone `json:"phone"`
+
+	// Region Регион доставки
+	Region DeliveryRegion `json:"region"`
+
+	// Zip Почтовый индекс
+	Zip DeliveryZip `json:"zip"`
+}
+
+// DeliveryAddress Адрес доставки
+type DeliveryAddress = string
+
+// DeliveryCity Город доствки
+type DeliveryCity = string
+
+// DeliveryEmail Электронный адрес адресата доставки
+type DeliveryEmail = openapi_types.Email
+
+// DeliveryName Полное навзание доставки
+type DeliveryName = string
+
+// DeliveryPhone Номер телофона
+type DeliveryPhone = string
+
+// DeliveryRegion Регион доставки
+type DeliveryRegion = string
+
+// DeliveryService Название случбы доставки
+type DeliveryService = string
+
+// DeliveryZip Почтовый индекс
+type DeliveryZip = string
+
+// Entry Код тороговой площадки или компании
+type Entry = string
+
+// ErrorResponse Используется для возвращения ошибки пользователю
+type ErrorResponse struct {
+	// Reason Описание ошибки в свободной форме
+	Reason string `json:"reason"`
+}
+
+// Item Информация о товаре
+type Item struct {
+	// Brand Бренд товара.
+	Brand ItemBrand `json:"brand"`
+
+	// ChrtId Уникальный номер товара
+	ChrtId ItemChrtId `json:"chrt_id"`
+
+	// Name Название товара
+	Name ItemName `json:"name"`
+
+	// NmId Внутренний идентификатор товара на торговой площадке или в системе продаж
+	NmId ItemNmId `json:"nm_id"`
+
+	// Price Цена товара до скидки
+	Price ItemPrice `json:"price"`
+
+	// Rid Уникальный идентификатор записи товара в системе
+	Rid ItemRid `json:"rid"`
+
+	// Sale Размер скидки на товар в процентах
+	Sale ItemSale `json:"sale"`
+
+	// Size Размер товара
+	Size ItemSize `json:"size"`
+
+	// Status Статус товара или заказа
+	Status ItemStatus `json:"status"`
+
+	// TotalPrice Итоговая цена с учетом скидки
+	TotalPrice ItemTotalPrice `json:"total_price"`
+
+	// TrackNumber Номер отслеживания товара
+	TrackNumber TrackNumber `json:"track_number"`
+}
+
+// ItemBrand Бренд товара.
+type ItemBrand = string
+
+// ItemChrtId Уникальный номер товара
+type ItemChrtId = int64
+
+// ItemName Название товара
+type ItemName = string
+
+// ItemNmId Внутренний идентификатор товара на торговой площадке или в системе продаж
+type ItemNmId = int64
+
+// ItemPrice Цена товара до скидки
+type ItemPrice = float64
+
+// ItemRid Уникальный идентификатор записи товара в системе
+type ItemRid = string
+
+// ItemSale Размер скидки на товар в процентах
+type ItemSale = float64
+
+// ItemSize Размер товара
+type ItemSize = string
+
+// ItemStatus Статус товара или заказа
+type ItemStatus = int32
+
+// ItemTotalPrice Итоговая цена с учетом скидки
+type ItemTotalPrice = float64
+
+// Items Список товаров
+type Items = []Item
+
+// Order Детали заказа
+type Order struct {
+	// CustomerId Идентификатор покупателя
+	CustomerId CustomerId `json:"customer_id"`
+
+	// DateCreated Дата и время создания заказа
+	DateCreated OrderDateCreated `json:"date_created"`
+
+	// Delivery Информация о доставке
+	Delivery Delivery `json:"delivery"`
+
+	// DeliveryService Название случбы доставки
+	DeliveryService DeliveryService `json:"delivery_service"`
+
+	// Entry Код тороговой площадки или компании
+	Entry Entry `json:"entry"`
+
+	// InternalSignature Внутренняя подпись для проверки или идентификации заказа
+	InternalSignature OrderInternalSignature `json:"internal_signature"`
+
+	// Items Список товаров
+	Items Items `json:"items"`
+
+	// Locale Язык или региональные настройки
+	Locale OrderLocale `json:"locale"`
+
+	// OofShard Дополнительное поле для шардирования
+	OofShard OrderOofShard `json:"oof_shard"`
+
+	// OrderUid Уникальный идентификатор заказа
+	OrderUid OrderId `json:"order_uid"`
+
+	// Payment Информация о оплате заказа
+	Payment Payment `json:"payment"`
+
+	// Shardkey Ключ шардирования для распределения данных по различным серверам или базам данных.
+	Shardkey ShardKey `json:"shardkey"`
+
+	// SmId Идентификатор партнера или магазина.
+	SmId SmId `json:"sm_id"`
+
+	// TrackNumber Номер отслеживания товара
+	TrackNumber TrackNumber `json:"track_number"`
+}
+
+// OrderDateCreated Дата и время создания заказа
+type OrderDateCreated = string
+
+// OrderId Уникальный идентификатор заказа
+type OrderId = string
+
+// OrderInternalSignature Внутренняя подпись для проверки или идентификации заказа
+type OrderInternalSignature = string
+
+// OrderLocale Язык или региональные настройки
+type OrderLocale = string
+
+// OrderOofShard Дополнительное поле для шардирования
+type OrderOofShard = string
+
+// Payment Информация о оплате заказа
+type Payment struct {
+	// Amount Сумма транзакции
+	Amount PaymentAmount `json:"amount"`
+
+	// Bank Банк транзакции
+	Bank PaymentBank `json:"bank"`
+
+	// Currency Валюта транзакции
+	Currency PaymentCurrency `json:"currency"`
+
+	// CustomFee Дополнительные расходы на доставку
+	CustomFee PaymentCustomFee `json:"custom_fee"`
+
+	// DeliveryCost Стоимость доставки
+	DeliveryCost PaymentDeliveryCost `json:"delivery_cost"`
+
+	// GoodsTotal Общая стоимость товаров без учета доставки
+	GoodsTotal PaymentGoodsTotal `json:"goods_total"`
+
+	// PaymentDt Время транзакции в формате Unix-времени
+	PaymentDt PaymentDt `json:"payment_dt"`
+
+	// Provider Поставщик
+	Provider PaymentProvider `json:"provider"`
+
+	// RequestId Номер транзакции
+	RequestId PaymentRequestId `json:"request_id"`
+
+	// Transaction Уникальный идентификатор заказа
+	Transaction OrderId `json:"transaction"`
+}
+
+// PaymentAmount Сумма транзакции
+type PaymentAmount = float64
+
+// PaymentBank Банк транзакции
+type PaymentBank = string
+
+// PaymentCurrency Валюта транзакции
+type PaymentCurrency = string
+
+// PaymentCustomFee Дополнительные расходы на доставку
+type PaymentCustomFee = float64
+
+// PaymentDeliveryCost Стоимость доставки
+type PaymentDeliveryCost = float64
+
+// PaymentDt Время транзакции в формате Unix-времени
+type PaymentDt = string
+
+// PaymentGoodsTotal Общая стоимость товаров без учета доставки
+type PaymentGoodsTotal = float64
+
+// PaymentProvider Поставщик
+type PaymentProvider = string
+
+// PaymentRequestId Номер транзакции
+type PaymentRequestId = string
+
+// ShardKey Ключ шардирования для распределения данных по различным серверам или базам данных.
+type ShardKey = string
+
+// SmId Идентификатор партнера или магазина.
+type SmId = int64
+
+// TrackNumber Номер отслеживания товара
+type TrackNumber = string
+
+// PaginationLimit defines model for paginationLimit.
+type PaginationLimit = int32
+
+// PaginationOffset defines model for paginationOffset.
+type PaginationOffset = int32
+
+// GetOrdersParams defines parameters for GetOrders.
+type GetOrdersParams struct {
+	// Limit Максимальное число возвращаемых объектов. Используется для запросов с пагинацией.
+	//
+	// Сервер должен возвращать максимальное допустимое число объектов.
+	Limit *PaginationLimit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Какое количество объектов должно быть пропущено с начала. Используется для запросов с пагинацией.
+	Offset *PaginationOffset `form:"offset,omitempty" json:"offset,omitempty"`
+}
+
+// CreateOrderJSONBody defines parameters for CreateOrder.
+type CreateOrderJSONBody struct {
+	union json.RawMessage
+}
+
+// CreateOrderJSONBody0 defines parameters for CreateOrder.
+type CreateOrderJSONBody0 = []Order
+
+// CreateOrderJSONRequestBody defines body for CreateOrder for application/json ContentType.
+type CreateOrderJSONRequestBody CreateOrderJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Получение списка ваших предложений
-	// (GET /api/bids/my)
-	GetUserBids(w http.ResponseWriter, r *http.Request, params entity2.GetUserBidsParams)
-	// Создание нового предложения
-	// (POST /api/bids/new)
-	CreateBid(w http.ResponseWriter, r *http.Request)
-	// Редактирование параметров предложения
-	// (PATCH /api/bids/{bidId}/edit)
-	EditBid(w http.ResponseWriter, r *http.Request, bidId entity2.BidId, params entity2.EditBidParams)
-	// Отправка отзыва по предложению
-	// (PUT /api/bids/{bidId}/feedback)
-	SubmitBidFeedback(w http.ResponseWriter, r *http.Request, bidId entity2.BidId, params entity2.SubmitBidFeedbackParams)
-	// Откат версии предложения
-	// (PUT /api/bids/{bidId}/rollback/{version})
-	RollbackBid(w http.ResponseWriter, r *http.Request, bidId entity2.BidId, version int32, params entity2.RollbackBidParams)
-	// Получение текущего статуса предложения
-	// (GET /api/bids/{bidId}/status)
-	GetBidStatus(w http.ResponseWriter, r *http.Request, bidId entity2.BidId, params entity2.GetBidStatusParams)
-	// Изменение статуса предложения
-	// (PUT /api/bids/{bidId}/status)
-	UpdateBidStatus(w http.ResponseWriter, r *http.Request, bidId entity2.BidId, params entity2.UpdateBidStatusParams)
-	// Отправка решения по предложению
-	// (PUT /api/bids/{bidId}/submit_decision)
-	SubmitBidDecision(w http.ResponseWriter, r *http.Request, bidId entity2.BidId, params entity2.SubmitBidDecisionParams)
-	// Получение списка предложений для тендера
-	// (GET /api/bids/{tenderId}/list)
-	GetBidsForTender(w http.ResponseWriter, r *http.Request, tenderId entity2.TenderId, params entity2.GetBidsForTenderParams)
-	// Просмотр отзывов на прошлые предложения
-	// (GET /api/bids/{tenderId}/reviews)
-	GetBidReviews(w http.ResponseWriter, r *http.Request, tenderId entity2.TenderId, params entity2.GetBidReviewsParams)
-	// Проверка доступности сервера
+	// Получение списка заказов
+	// (GET /api/orders)
+	GetOrders(w http.ResponseWriter, r *http.Request, params GetOrdersParams)
+	// Создание нового заказа
+	// (POST /api/orders/new)
+	CreateOrder(w http.ResponseWriter, r *http.Request)
+	// Получение заказа по идентификатору
+	// (GET /api/orders/{order_uid})
+	GetOrderById(w http.ResponseWriter, r *http.Request, orderUid OrderId)
+	// Првоерка доступности сервера
 	// (GET /api/ping)
-	CheckServer(w http.ResponseWriter, r *http.Request)
-	// Получение списка тендеров
-	// (GET /api/tenders)
-	GetTenders(w http.ResponseWriter, r *http.Request, params entity2.GetTendersParams)
-	// Получить тендеры пользователя
-	// (GET /api/tenders/my)
-	GetUserTenders(w http.ResponseWriter, r *http.Request, params entity2.GetUserTendersParams)
-	// Создание нового тендера
-	// (POST /api/tenders/new)
-	CreateTender(w http.ResponseWriter, r *http.Request)
-	// Редактирование тендера
-	// (PATCH /api/tenders/{tenderId}/edit)
-	EditTender(w http.ResponseWriter, r *http.Request, tenderId entity2.TenderId, params entity2.EditTenderParams)
-	// Откат версии тендера
-	// (PUT /api/tenders/{tenderId}/rollback/{version})
-	RollbackTender(w http.ResponseWriter, r *http.Request, tenderId entity2.TenderId, version int32, params entity2.RollbackTenderParams)
-	// Получение текущего статуса тендера
-	// (GET /api/tenders/{tenderId}/status)
-	GetTenderStatus(w http.ResponseWriter, r *http.Request, tenderId entity2.TenderId, params entity2.GetTenderStatusParams)
-	// Изменение статуса тендера
-	// (PUT /api/tenders/{tenderId}/status)
-	UpdateTenderStatus(w http.ResponseWriter, r *http.Request, tenderId entity2.TenderId, params entity2.UpdateTenderStatusParams)
+	GetApiPing(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -86,415 +334,14 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
-// GetUserBids operation middleware
-func (siw *ServerInterfaceWrapper) GetUserBids(w http.ResponseWriter, r *http.Request) {
+// GetOrders operation middleware
+func (siw *ServerInterfaceWrapper) GetOrders(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params entity2.GetUserBidsParams
-
-	// ------------- Optional query parameter "limit" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "limit", r.URL.Query(), &params.Limit)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "offset" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "offset", r.URL.Query(), &params.Offset)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "offset", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "username" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "username", r.URL.Query(), &params.Username)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "username", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetUserBids(w, r, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// CreateBid operation middleware
-func (siw *ServerInterfaceWrapper) CreateBid(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreateBid(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// EditBid operation middleware
-func (siw *ServerInterfaceWrapper) EditBid(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "bidId" -------------
-	var bidId entity2.BidId
-
-	err = runtime.BindStyledParameter("simple", false, "bidId", mux.Vars(r)["bidId"], &bidId)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bidId", Err: err})
-		return
-	}
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params entity2.EditBidParams
-
-	// ------------- Required query parameter "username" -------------
-
-	if paramValue := r.URL.Query().Get("username"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "username"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "username", r.URL.Query(), &params.Username)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "username", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.EditBid(w, r, bidId, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// SubmitBidFeedback operation middleware
-func (siw *ServerInterfaceWrapper) SubmitBidFeedback(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "bidId" -------------
-	var bidId entity2.BidId
-
-	err = runtime.BindStyledParameter("simple", false, "bidId", mux.Vars(r)["bidId"], &bidId)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bidId", Err: err})
-		return
-	}
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params entity2.SubmitBidFeedbackParams
-
-	// ------------- Required query parameter "bidFeedback" -------------
-
-	if paramValue := r.URL.Query().Get("bidFeedback"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "bidFeedback"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "bidFeedback", r.URL.Query(), &params.BidFeedback)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bidFeedback", Err: err})
-		return
-	}
-
-	// ------------- Required query parameter "username" -------------
-
-	if paramValue := r.URL.Query().Get("username"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "username"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "username", r.URL.Query(), &params.Username)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "username", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.SubmitBidFeedback(w, r, bidId, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// RollbackBid operation middleware
-func (siw *ServerInterfaceWrapper) RollbackBid(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "bidId" -------------
-	var bidId entity2.BidId
-
-	err = runtime.BindStyledParameter("simple", false, "bidId", mux.Vars(r)["bidId"], &bidId)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bidId", Err: err})
-		return
-	}
-
-	// ------------- Path parameter "version" -------------
-	var version int32
-
-	err = runtime.BindStyledParameter("simple", false, "version", mux.Vars(r)["version"], &version)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "version", Err: err})
-		return
-	}
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params entity2.RollbackBidParams
-
-	// ------------- Required query parameter "username" -------------
-
-	if paramValue := r.URL.Query().Get("username"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "username"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "username", r.URL.Query(), &params.Username)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "username", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.RollbackBid(w, r, bidId, version, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// GetBidStatus operation middleware
-func (siw *ServerInterfaceWrapper) GetBidStatus(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "bidId" -------------
-	var bidId entity2.BidId
-
-	err = runtime.BindStyledParameter("simple", false, "bidId", mux.Vars(r)["bidId"], &bidId)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bidId", Err: err})
-		return
-	}
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params entity2.GetBidStatusParams
-
-	// ------------- Required query parameter "username" -------------
-
-	if paramValue := r.URL.Query().Get("username"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "username"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "username", r.URL.Query(), &params.Username)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "username", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetBidStatus(w, r, bidId, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// UpdateBidStatus operation middleware
-func (siw *ServerInterfaceWrapper) UpdateBidStatus(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "bidId" -------------
-	var bidId entity2.BidId
-
-	err = runtime.BindStyledParameter("simple", false, "bidId", mux.Vars(r)["bidId"], &bidId)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bidId", Err: err})
-		return
-	}
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params entity2.UpdateBidStatusParams
-
-	// ------------- Required query parameter "status" -------------
-
-	if paramValue := r.URL.Query().Get("status"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "status", r.URL.Query(), &params.Status)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
-		return
-	}
-
-	// ------------- Required query parameter "username" -------------
-
-	if paramValue := r.URL.Query().Get("username"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "username"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "username", r.URL.Query(), &params.Username)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "username", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.UpdateBidStatus(w, r, bidId, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// SubmitBidDecision operation middleware
-func (siw *ServerInterfaceWrapper) SubmitBidDecision(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "bidId" -------------
-	var bidId entity2.BidId
-
-	err = runtime.BindStyledParameter("simple", false, "bidId", mux.Vars(r)["bidId"], &bidId)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bidId", Err: err})
-		return
-	}
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params entity2.SubmitBidDecisionParams
-
-	// ------------- Required query parameter "decision" -------------
-
-	if paramValue := r.URL.Query().Get("decision"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "decision"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "decision", r.URL.Query(), &params.Decision)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "decision", Err: err})
-		return
-	}
-
-	// ------------- Required query parameter "username" -------------
-
-	if paramValue := r.URL.Query().Get("username"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "username"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "username", r.URL.Query(), &params.Username)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "username", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.SubmitBidDecision(w, r, bidId, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// GetBidsForTender operation middleware
-func (siw *ServerInterfaceWrapper) GetBidsForTender(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "tenderId" -------------
-	var tenderId entity2.TenderId
-
-	err = runtime.BindStyledParameter("simple", false, "tenderId", mux.Vars(r)["tenderId"], &tenderId)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenderId", Err: err})
-		return
-	}
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params entity2.GetBidsForTenderParams
-
-	// ------------- Required query parameter "username" -------------
-
-	if paramValue := r.URL.Query().Get("username"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "username"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "username", r.URL.Query(), &params.Username)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "username", Err: err})
-		return
-	}
+	var params GetOrdersParams
 
 	// ------------- Optional query parameter "limit" -------------
 
@@ -513,7 +360,7 @@ func (siw *ServerInterfaceWrapper) GetBidsForTender(w http.ResponseWriter, r *ht
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetBidsForTender(w, r, tenderId, params)
+		siw.Handler.GetOrders(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -523,72 +370,38 @@ func (siw *ServerInterfaceWrapper) GetBidsForTender(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// GetBidReviews operation middleware
-func (siw *ServerInterfaceWrapper) GetBidReviews(w http.ResponseWriter, r *http.Request) {
+// CreateOrder operation middleware
+func (siw *ServerInterfaceWrapper) CreateOrder(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateOrder(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetOrderById operation middleware
+func (siw *ServerInterfaceWrapper) GetOrderById(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
 
-	// ------------- Path parameter "tenderId" -------------
-	var tenderId entity2.TenderId
+	// ------------- Path parameter "order_uid" -------------
+	var orderUid OrderId
 
-	err = runtime.BindStyledParameter("simple", false, "tenderId", mux.Vars(r)["tenderId"], &tenderId)
+	err = runtime.BindStyledParameter("simple", false, "order_uid", mux.Vars(r)["order_uid"], &orderUid)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenderId", Err: err})
-		return
-	}
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params entity2.GetBidReviewsParams
-
-	// ------------- Required query parameter "authorUsername" -------------
-
-	if paramValue := r.URL.Query().Get("authorUsername"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "authorUsername"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "authorUsername", r.URL.Query(), &params.AuthorUsername)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "authorUsername", Err: err})
-		return
-	}
-
-	// ------------- Required query parameter "requesterUsername" -------------
-
-	if paramValue := r.URL.Query().Get("requesterUsername"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "requesterUsername"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "requesterUsername", r.URL.Query(), &params.RequesterUsername)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "requesterUsername", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "limit" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "limit", r.URL.Query(), &params.Limit)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "offset" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "offset", r.URL.Query(), &params.Offset)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "offset", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "order_uid", Err: err})
 		return
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetBidReviews(w, r, tenderId, params)
+		siw.Handler.GetOrderById(w, r, orderUid)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -598,305 +411,12 @@ func (siw *ServerInterfaceWrapper) GetBidReviews(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// CheckServer operation middleware
-func (siw *ServerInterfaceWrapper) CheckServer(w http.ResponseWriter, r *http.Request) {
+// GetApiPing operation middleware
+func (siw *ServerInterfaceWrapper) GetApiPing(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CheckServer(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// GetTenders operation middleware
-func (siw *ServerInterfaceWrapper) GetTenders(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params entity2.GetTendersParams
-
-	// ------------- Optional query parameter "limit" -------------
-	err = runtime.BindQueryParameter("form", true, false, "limit", r.URL.Query(), &params.Limit)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "offset" -------------
-	err = runtime.BindQueryParameter("form", true, false, "offset", r.URL.Query(), &params.Offset)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "offset", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "service_type" -------------
-	err = runtime.BindQueryParameter("form", true, false, "service_type", r.URL.Query(), &params.ServiceType)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "service_type", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetTenders(w, r, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// GetUserTenders operation middleware
-func (siw *ServerInterfaceWrapper) GetUserTenders(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params entity2.GetUserTendersParams
-
-	// ------------- Optional query parameter "limit" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "limit", r.URL.Query(), &params.Limit)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "offset" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "offset", r.URL.Query(), &params.Offset)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "offset", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "username" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "username", r.URL.Query(), &params.Username)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "username", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetUserTenders(w, r, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// CreateTender operation middleware
-func (siw *ServerInterfaceWrapper) CreateTender(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreateTender(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// EditTender operation middleware
-func (siw *ServerInterfaceWrapper) EditTender(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "tenderId" -------------
-	var tenderId entity2.TenderId
-
-	err = runtime.BindStyledParameter("simple", false, "tenderId", mux.Vars(r)["tenderId"], &tenderId)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenderId", Err: err})
-		return
-	}
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params entity2.EditTenderParams
-
-	// ------------- Required query parameter "username" -------------
-
-	if paramValue := r.URL.Query().Get("username"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "username"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "username", r.URL.Query(), &params.Username)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "username", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.EditTender(w, r, tenderId, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// RollbackTender operation middleware
-func (siw *ServerInterfaceWrapper) RollbackTender(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "tenderId" -------------
-	var tenderId entity2.TenderId
-
-	err = runtime.BindStyledParameter("simple", false, "tenderId", mux.Vars(r)["tenderId"], &tenderId)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenderId", Err: err})
-		return
-	}
-
-	// ------------- Path parameter "version" -------------
-	var version int32
-
-	err = runtime.BindStyledParameter("simple", false, "version", mux.Vars(r)["version"], &version)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "version", Err: err})
-		return
-	}
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params entity2.RollbackTenderParams
-
-	// ------------- Required query parameter "username" -------------
-
-	if paramValue := r.URL.Query().Get("username"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "username"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "username", r.URL.Query(), &params.Username)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "username", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.RollbackTender(w, r, tenderId, version, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// GetTenderStatus operation middleware
-func (siw *ServerInterfaceWrapper) GetTenderStatus(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "tenderId" -------------
-	var tenderId entity2.TenderId
-
-	err = runtime.BindStyledParameter("simple", false, "tenderId", mux.Vars(r)["tenderId"], &tenderId)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenderId", Err: err})
-		return
-	}
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params entity2.GetTenderStatusParams
-
-	// ------------- Optional query parameter "username" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "username", r.URL.Query(), &params.Username)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "username", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetTenderStatus(w, r, tenderId, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// UpdateTenderStatus operation middleware
-func (siw *ServerInterfaceWrapper) UpdateTenderStatus(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "tenderId" -------------
-	var tenderId entity2.TenderId
-
-	err = runtime.BindStyledParameter("simple", false, "tenderId", mux.Vars(r)["tenderId"], &tenderId)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenderId", Err: err})
-		return
-	}
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params entity2.UpdateTenderStatusParams
-
-	// ------------- Required query parameter "status" -------------
-
-	if paramValue := r.URL.Query().Get("status"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "status", r.URL.Query(), &params.Status)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
-		return
-	}
-
-	// ------------- Required query parameter "username" -------------
-
-	if paramValue := r.URL.Query().Get("username"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "username"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "username", r.URL.Query(), &params.Username)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "username", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.UpdateTenderStatus(w, r, tenderId, params)
+		siw.Handler.GetApiPing(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1019,196 +539,72 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
-	r.HandleFunc(options.BaseURL+"/api/bids/my", wrapper.GetUserBids).Methods("GET")
+	r.HandleFunc(options.BaseURL+"/api/orders", wrapper.GetOrders).Methods("GET")
 
-	r.HandleFunc(options.BaseURL+"/api/bids/new", wrapper.CreateBid).Methods("POST")
+	r.HandleFunc(options.BaseURL+"/api/orders/new", wrapper.CreateOrder).Methods("POST")
 
-	r.HandleFunc(options.BaseURL+"/api/bids/{bidId}/edit", wrapper.EditBid).Methods("PATCH")
+	r.HandleFunc(options.BaseURL+"/api/orders/{order_uid}", wrapper.GetOrderById).Methods("GET")
 
-	r.HandleFunc(options.BaseURL+"/api/bids/{bidId}/feedback", wrapper.SubmitBidFeedback).Methods("PUT")
-
-	r.HandleFunc(options.BaseURL+"/api/bids/{bidId}/rollback/{version}", wrapper.RollbackBid).Methods("PUT")
-
-	r.HandleFunc(options.BaseURL+"/api/bids/{bidId}/status", wrapper.GetBidStatus).Methods("GET")
-
-	r.HandleFunc(options.BaseURL+"/api/bids/{bidId}/status", wrapper.UpdateBidStatus).Methods("PUT")
-
-	r.HandleFunc(options.BaseURL+"/api/bids/{bidId}/submit_decision", wrapper.SubmitBidDecision).Methods("PUT")
-
-	r.HandleFunc(options.BaseURL+"/api/bids/{tenderId}/list", wrapper.GetBidsForTender).Methods("GET")
-
-	r.HandleFunc(options.BaseURL+"/api/bids/{tenderId}/reviews", wrapper.GetBidReviews).Methods("GET")
-
-	r.HandleFunc(options.BaseURL+"/api/ping", wrapper.CheckServer).Methods("GET")
-
-	r.HandleFunc(options.BaseURL+"/api/tenders", wrapper.GetTenders).Methods("GET")
-
-	r.HandleFunc(options.BaseURL+"/api/tenders/my", wrapper.GetUserTenders).Methods("GET")
-
-	r.HandleFunc(options.BaseURL+"/api/tenders/new", wrapper.CreateTender).Methods("POST")
-
-	r.HandleFunc(options.BaseURL+"/api/tenders/{tenderId}/edit", wrapper.EditTender).Methods("PATCH")
-
-	r.HandleFunc(options.BaseURL+"/api/tenders/{tenderId}/rollback/{version}", wrapper.RollbackTender).Methods("PUT")
-
-	r.HandleFunc(options.BaseURL+"/api/tenders/{tenderId}/status", wrapper.GetTenderStatus).Methods("GET")
-
-	r.HandleFunc(options.BaseURL+"/api/tenders/{tenderId}/status", wrapper.UpdateTenderStatus).Methods("PUT")
+	r.HandleFunc(options.BaseURL+"/api/ping", wrapper.GetApiPing).Methods("GET")
 
 	return r
 }
 
-//// Base64 encoded, gzipped, json marshaled Swagger object
-//var swaggerSpec = []string{
-//
-//	"H4sIAAAAAAAC/+xdW2/bRhb+Kwx3H1pAkeXETlu9JWm7KLY35NKHrYOCtmiHjUSpFJVNNhBgS2mTrlNn",
-//	"segCQbdNtt2HfSpA22EsS5b8F878o8U5MySHN4myFd+ih6axJXJmzpzznfvJA3WpWqlVTd2062rxgVrT",
-//	"LK2i27olfloxTM02qubHRsWw8Vclvb5kGTX8nVpU4WdwoMvWoAN74ECPPYE+DMBV2CPosDXowUCBLRjA",
-//	"DmyxVXDY9+CAC3tsnX2rwAA22d/BhS5rwQC28go8Y2uwDwN60Q5rg8tabI09VeAl9PB/O+DAPluFAVvD",
-//	"JxS2psA+OLANHeiDw76DDriwm18wF0z4FVy2Clv4J75gAD14BS70YztiLfZEoQMkHYUe3WdttsZa9GH0",
-//	"fNFjLJhqTjWQPN80dOu+mlNNraKrRbVMRMyp9aXbekXj1FzWGmVbLc7n1OWqVdFstagapn3xgppTK9o9",
-//	"o9KoqMX5Qk6tGCb/oZBT7fs1nX9PX9EttdnMSTf12fJyXU+6qp/wfPxEXSJGhz0Cl061lXCMgGR9/HST",
-//	"rXMyEfmJHt8jMWFAl4DEf4RkA2ei15hCySo/ZCIpC0mkHEa9pvca4vlFo5RAvGfQZw9hwFaROXB/eIwB",
-//	"p4aLx4IBZy7oQEfNqfo9rVIr6/gmrWHfrlofldSiemlWm3t3frlwXr/w3uL5udnS3HntndlL5+fmLl2a",
-//	"n5+bKxQKBTUnnrjB93mzrltqTl2ydM3WS5fxVBcKhUvnC7PnCxduzM4XC3PFwvxfCu8U6VncvTo/X9Df",
-//	"nSuMWkcQE37Ei2AtcGALuuAonAHAoZveUuAf0CO+WMNLQaLbmt2oq0X1Kt+UmlPv6ladSDWLzGhVa7pl",
-//	"G3o9fP4H6h8tfVktqn+YCVBnRtB+ZtEoXfa+2gwTIeOD9OVmiFaxi5RAgViNmNLBwyvQUQgTEJ+eKnhw",
-//	"lPU9vFXWynGp2cZvKwFzC0K1wMWfFRiwFvEEkrIDvWQGcUleFGL+HXwh/21+wYQXtDGXfulLzZYi8V4L",
-//	"XOXah1cvXrz4HpcPn9WG8oXg+rptGeYKEilEl5EEfl/6dpNz2chn+D1yJhv55U/xa82At0Y+cJ1/sZlT",
-//	"bd0s6RkYzP9eU+LXket8Ib6JMGHp3zQMSy+pxS+RBOJwYVr6R5A2JrNkiLNzgXQEe7rl31Z18Wt9ycb9",
-//	"ysIRZ+r/EgN1PbXF1mFXgQ685KwLHfaQf4yCjcrQgS3+V+LlOIeypzn+e9RxqCzxt/y1CAK+AA1gLx/i",
-//	"wIzAU9HufaybK/ZttThbKCQwZ1ik4wf+DTqwHzoHbsNEhP9S/cxa0Uzjb5q4DgLQW8mLvK8vGR4fRJb4",
-//	"D7jscSCw+ylozzaklS/Xalb1LgHiNR2vTi+lrxwSv8jiz2GfaO/4yyddUpiS82mU/FDXS4va0p2kdVgL",
-//	"dtg6Yl0/hRfAjV1YyjoTYc0Tyo2fChSLnO4FmUjCTuyDg1blWJeWuuA1/a6h/3X4lWWzP7JaDuF1LpfL",
-//	"ykq1Wq2Wzp07d24swyJmAZwkfTzIwvEnWRNzxjiIPuZPov5LUmVhHRZcWYo2im9jMiiWDi/+9g8PMj4T",
-//	"gHP80HLdt3iiooFSwFroeaaTzlM9gSn+eWOxbNRv09+vauaSXk7XQl8EZpDvP81GoQB+4WKHlCNykJPc",
-//	"Iakjn0CYuQ5RsKsO879m4/5XTtUtq2pd0+u1qllPQtlR7mTYnRe0wVt+DB3YhK7YawJCbISh0tK1Oi25",
-//	"0CgULi5xl5g9ZWvQ96Ahx4/9iFCpHXJl0xZ5ilDjcvR6hZuXvGlcASm3STzpQJ9W1uMY6m1ttJCFjo2+",
-//	"NdFnEwbwkjTVboBhLr8a34KIMUkEKMQmkiChKhldE5LRVdgWp9oRMYHOMUsrN+izhweIAfp4RpTeSahl",
-//	"+IW1vZDMS8lt7/jshLtgbQreIIkEUwhJobAP7CHLgAMv2To3bIlmnAXxP5d9Ky6rM/GIAi75ExlKDvTZ",
-//	"E+W8Aj8TjHTxc/SedOuusaSL6Mf7etm4y0M/40UdTpDNIXPBKfP8OcOPbWzInnYW/59/3wsBxKFk2LOR",
-//	"bzcjHJRl4evSA5lDEOJRPwqRMaLAHztAUEHaoxRiiJw+2MYoEy5+s6NVSwjOnCzepxyaOZw+CK99IvTA",
-//	"QXzCYSQcttb1ME9HlvwnEk5BQxF6rA3bpCi7hFYiPoJqn37oE9iSuiCIkTckm5NVs25bjSXBfRIMf6KZ",
-//	"jWVtyW5YeqJVGZKL4UZt2trJpmy5Wk8xZMMydby2bKOuW2YyYyRxfL3cWEm1G8PMa+t1+6sGzwZEzTRE",
-//	"ZXO5Gl/08ucfecqftf2T9XwjOcyPsIek6KR4G/hpXlkw4TkZxLhVPISrsIesDX3ochtNoTVR7/fYBnsE",
-//	"DttgrYTVY9JAq78V1Y05hQxAUsFhIxx5nQxx8bI1AVddcN7GUyQumX60SS3NdbNt2HRrN4g3lU80U1vR",
-//	"K7ppI3lk00WdzVPIpFrTTa1mqEX1Yr6Qn1Vzak2zb5MIzWg1Ax34+kzlPv68kpjfezF0W8mRjl1+BV2R",
-//	"zdumkFIKM1JO9UePlV6S68KTh2g2yS4af9BzwwJOcEXIhVwRfumvxN4iyb8OJyIadL4ZoP5Jt2/WdeuK",
-//	"UaoTdYJM9ZfJOjf4ykw0k93MjfGISKniM0nJSF/k5XTkMBvAf6DZvIX6nzu+dNUXCgWyXqumrZt0y1qt",
-//	"VjaWaB8zXwsXMFjGsPVKlmwJwSQHDc2ytPscM2J2MWeXAeqOZHZJ444caRd8lq2S9l71mUCodgqgI/Q9",
-//	"9B2Wdh63NVeYHevIw04ajiQknfFFmtXeJ4HhgsD5mkcaEAN6iIkIAV0636rIkrvQz5MJV29UKpp1P4sU",
-//	"4pqPocO+TaEwvS8QeJPHgGvVerIjE8KrFHDzFUDkdGzDF/owEOdjosdV8hUyT9Fe1ev2lWrp/lj3dtxZ",
-//	"4UMlPMfMYo6fkow4Aok+gJRPTM4hxg39BAn40ZdKsk95mGA7Lb1FRkiwM9tq6M1DYtZIqEoS28Q0Olm8",
-//	"+5So44UokjwM8kq4AihwGBzo0J8ut0vGi0uFAgRhiwGJdQYADU9w8QhP8AvdrAgYEZkf8QCXsN6COC9b",
-//	"5/rHM8c4trmwKwyR4AbmjnD/v4XDO8Lr2+UsFFMQMcweLYIRnfCAcq3NGb3ES/Jqmr10OzmDTet0Iwq5",
-//	"k8AYki5Ih4GwTvigZNhcI0RMMbKR0HgNTCSeHY4CSS47KHCIHGl/Hez9UXtsEvrt6LRNMwvoi+iiX7Yo",
-//	"1TU4wvdyWcsr+EInEC0UYk1eq7kjSvx8Q9CPKG8KDg6cyhQOIgfiX7R8J/pCV0jOvhQF7cMAzUqOBV48",
-//	"uR8ERzfBhZ24iybKBk+Jzopsf8AVTLRiFlE7Suk+Si0+H009bAgMLBwhBkaMClcOgPNKWoQcb58SGrF1",
-//	"WR9xhTogMOf37KFTSyH2dCmR5XuXsDfVuG+gxn2RVlQZ1r0wiGnfYToxGQvH0cjLUqVVrWGnVO/4oiFy",
-//	"dkFFSnqRWVz9Xm8sVkgB++Vdx66IF0ObOfAS/juOTuMfsWZ4nuXKY5pCziv2JOQ4SpwPFQym1TSk7HOK",
-//	"0VOMzoLRMkZSzEwq1xpaiJsMyla1XEY4mXkgYu7N4fDMfX0BzhGVQAUTyTG2rsLaFEbY4aYQT7lJOaa8",
-//	"Ar/jPSL7oRnekhP9nhO4q0hHH8CuKDf6gQooqODIfyM+1qG0C0Uj/HjFalAhFdca1wQxjtxxy5SGS8xa",
-//	"9oOKl0HsehKrN72mofBRgsx4+mHGSvadVe2UzW8J7sKR/JZRvOkbXM4xKC+EVFH1w4sFpNqacFOa46sD",
-//	"PykWwYGpTpvqNE+nCSqHuD+q54hj4nquy3kvXIowhscR1CqNSgpzxPRIP6SoWKhYkRiKhMc9LZQaIGft",
-//	"fFLi9opf53z2woWvD5696rKUoDNP21MWf/S1TgFrClhjGOEJeexopYjMdKmNhFTJnmhrP/MDn8cITTdr",
-//	"JZ7YPino5Fd2HvjtPmicUfN0dFvM8Bj71PCc4vibg+PPogWMWWE72dykoPNXJaltOmucm9KPQUP1W1QE",
-//	"yNufhDMveIY7lj3eu4KfvH3AwLjf3H3soF4KdnLg9/unObPAnrnjfnRknAThqFE+sv/s8XF/t1NQn4L6",
-//	"QSLkMrb6VnKmGLlXUticKRu8xDRrcXly+WqO+k3ZUy8KTsUjbC0SG2frsBeuORWtOklxg/qHVYtX0WcC",
-//	"cqlI8mAoKNdkvn6gzR1N6fopqzM/VDn51LKfKoHTWTwqaLs/yahNhh4grz8g3JuYqiksGsQxJOj8PFy/",
-//	"JbVnokQktvazjZCtxLvx9ggEVulN3uRB9hh6vMrMzwqz9fRZLnjJ0pSonJRd9PpFvXLc9GFtgoOytUpw",
-//	"pXVN0OgYNFYszLYnTILk0RSjZoF5YByhtUxGN5Sk9QAvdHv5lEGOvHXh5mQV6lgUiLGEj9rUqOM3Csg0",
-//	"SDuNKB3WJ32gs2QhiMFWY9sJQRHIYNjwJt6dGK7D2Oa2gs/nUzthaiecBTshgsojE84vwsicLlOSlh0R",
-//	"HawZ5kq6IfA7HyijsB9o70jWDvSJO0aMdNoXFj9KDA0y2uYYDVt8ggE6BeFhD448TMlhLV4vxi0HSb7Y",
-//	"el6hRoT/EWP6nWED2BZStoev2qQWZ2LkV3w4DK8Go/W4BEsxKK43/LJ1hfc3cDHZ84Yj9/lHMf4SqTU6",
-//	"k9duwdbYd7xdmq3SLOStpIboq7f1pTvXdesuucYj0NvW79kztbJmRNgyGDBQvZM8WSB9eo50LVmpn1Pw",
-//	"qAH/blFTClexC7ht5bM/L6j5BZM4vudF94iueDHE5qiTX4n+kESh9qC2TTtYUKt36J0otvOcMsMORWtM",
-//	"5GStcLR9AHvKfKHgC3CPbVA/A5rgVLe3LWr+ujwkAq5yoVBIlmNfOByfBqwN+6niEcgsNxeH2O+y3o1E",
-//	"afisbt6fwu11sR57wjYUyrf22BOy+0Qnv5gw1YIO7LO2NKQk3A8kP+rDGdL3Je8SycWntm/4U5LwpKGd",
-//	"svWUAQI3xNmPa35AbHBLdHKdmKgROos0ip2tJ7bIeGqZPUmKtFEbDtJxL538a+GYTFvA0W4u+WaomVYU",
-//	"9j31biJ9XruYXvSVLcYXxdEnfeTMrVw22zJxllPExjwSI1dMiRvXwo1K2vAYGA0QSIiBid+G5g4dS0fY",
-//	"hC3eseIcUVLGsO8wg1TiiHjqRqgcNwqeyikqExLr6QiV7CNUROVARBmm0C8u5GMOT5Eb8cNRPjJ6fGOE",
-//	"a1Vu2YQbBmmEVdr0FD+HNZkGcxrvJ4XOMkvL4QdAnraRjllmq4TnK8bGKkapfbhJK/EY8tF1q3swNiLG",
-//	"MGS0ynSwyhsa8xpjkElaLsmDZimdNGqMSbyCLbFR+xDTrT4oGfbZrTA4jpEmE1Ibh4b9EzYYJcKIZ3Ug",
-//	"ysFUTHjf0zko0zko06TQRCePDZ0Hll1fT7ifPuJpnbI++uMzG15LQ718GdM2+teq7UL989Pu+am2eiNL",
-//	"GCbUMz+G+jpUx3xUWb2GTvkb8r+fcPLc0RMIvQfrko8GBaaANDWfh5rP43fER1HpQJ3wQyDnIK3uJxFe",
-//	"DtnzHkGBs2tO/prOFtOO9yk2v8HYPLLLPWYgiuiyB3yR1f8Ng0jmSi6mE/+ET8Mqq0WyM9Xmreb/AwAA",
-//	"//927ZmSSoUAAA==",
-//}
-
+// Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"AAD//6CMOk1KhQAA",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

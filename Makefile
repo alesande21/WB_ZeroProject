@@ -11,7 +11,7 @@ ver:
 	oapi-codegen -version
 
 genServer:
-	oapi-codegen --config=configs/oapi/configServer.yaml api/openapi.yml
+	oapi-codegen --config=configs/oapi/configServer.yaml api/ordersAPI.yml
 
 build:
 	#go build ./cmd/app/
