@@ -59,9 +59,11 @@ paths:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: "#/components/schemas/order"
+              oneOf:
+                - type: array
+                  items:
+                    $ref: "#/components/schemas/order"
+                - $ref: "#/components/schemas/order"
       responses:
         "200":
           description: Заказ успешно создан
@@ -75,7 +77,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/errorResponse"
-  /api/orders/{order_uid}:
+  /api/orders/{orderId}:
     get:
       summary: Получение заказа по идентификатору
       operationId: getOrderById
