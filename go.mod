@@ -1,4 +1,4 @@
-module AvitoProject
+module WB_ZeroProject
 
 go 1.22.0
 
@@ -7,7 +7,6 @@ require (
 	github.com/getkin/kin-openapi v0.127.0
 	github.com/google/uuid v1.5.0
 	github.com/gorilla/mux v1.8.1
-	github.com/gorilla/schema v1.4.1
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/invopop/yaml v0.3.1
 	github.com/lib/pq v1.10.9
