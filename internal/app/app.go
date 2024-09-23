@@ -1,12 +1,12 @@
 package app
 
 import (
-	"AvitoProject/internal/colorAttribute"
-	config2 "AvitoProject/internal/config"
-	http2 "AvitoProject/internal/controllers/http"
-	database2 "AvitoProject/internal/database"
-	repository2 "AvitoProject/internal/repository"
-	service2 "AvitoProject/internal/service"
+	"WB_ZeroProject/internal/colorAttribute"
+	config2 "WB_ZeroProject/internal/config"
+	http2 "WB_ZeroProject/internal/controllers/http"
+	database2 "WB_ZeroProject/internal/database"
+	repository2 "WB_ZeroProject/internal/repository"
+	service2 "WB_ZeroProject/internal/service"
 	"fmt"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/context"
@@ -73,10 +73,8 @@ func Run() {
 	//}
 
 	log.Println("Инициализация сервиса...")
-	tenderRepo := repository2.NewTenderRepo(postgresRep)
-	tenderService := service2.NewTenderService(tenderRepo)
-	bidRepo := repository2.NewBidRepo(postgresRep)
-	bidService := service2.NewBidService(bidRepo)
+	orderRepo := repository2.NewOrderRepo(postgresRep)
+	orderService := service2.NewOrderService(orderRepo)
 
 	log.Println("Загрузка настроек для сервера...")
 	var serverAddress http2.ServerAddress
@@ -95,7 +93,7 @@ func Run() {
 	}
 	swagger.Servers = nil
 
-	tenderServer := http2.NewTenderServer(tenderService, bidService)
+	tenderServer := http2.NewTenderServer(orderService)
 
 	//r := mux.NewRouter().PathPrefix("/api").Subrouter().StrictSlash(true)
 	r := mux.NewRouter()
