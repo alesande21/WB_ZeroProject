@@ -114,27 +114,58 @@ func (r *OrderRepo) GetOrderById(ctx context.Context, orderId entity2.OrderId) (
 	err := row.Scan(&order.OrderUid, &order.TrackNumber, &order.Entry, &order.Locale, &order.InternalSignature,
 		&order.CustomerId, &order.DeliveryService, &order.Shardkey, &order.SmId, &order.DateCreated, &order.OofShard)
 	if err != nil {
-		log.Printf("Ошибка выполнения запроса в GetOrderById query 1: %v\n", err)
+		log.Printf("Заказ по orderId не найден: %v\n", err)
 		return nil, err
 	}
 
 	query = `
-		SELECT tender_id, name, description, type, version
-		FROM tender_condition
-		WHERE tender_id = $1
-		ORDER BY version DESC
+		SELECT request_id, currency, provider, amount, payment_dt, bank, delivery_cost, 
+		       goods_total, custom_fee
+		FROM payment
+		WHERE transaction_id = $1
 	`
 
-	row = r.dbRepo.QueryRow(ctx, query, tenderId)
+	row = r.dbRepo.QueryRow(ctx, query, orderId)
 
-	err = row.Scan(&tender.Id, &tender.Name, &tender.Description, &tender.ServiceType, &tender.Version)
+	var payment entity2.Payment
+
+	err = row.Scan(&payment.RequestId, &payment.Currency, &payment.Provider, &payment.Amount, &payment.PaymentDt,
+		&payment.Bank, &payment.DeliveryCost, &payment.GoodsTotal, &payment.CustomFee)
 	if err != nil {
-		log.Printf("Ошибка выполнения запроса в GetTenderById query 2: %v\n", err)
+		log.Printf("Платежные данные по orderId не найдены: %v\n", err)
 		return nil, err
 	}
 
-	return &tender, nil
+	order.Payment = payment
 
+	query = `
+		SELECT chrt_id, track_number, price, rid, name, sale, size, total_price, nm_id, brand, status
+		FROM items
+		WHERE transaction_id = $1
+	`
+
+	rows, err := r.dbRepo.Query(ctx, query, orderId)
+	if err != nil {
+		log.Printf("Товары для заказа не найдены: %v\n", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []entity2.Item
+	for rows.Next() {
+		var item entity2.Item
+		err := rows.Scan(&item.ChrtId, &item.TrackNumber, &item.Price, &item.Rid, &item.Name, &item.Sale, &item.Size,
+			&item.TotalPrice, &item.NmId, &item.Brand, &item.Status)
+		if err != nil {
+			log.Printf("ошибка выполнения при обработке товаров: %v\n", err)
+			return nil, err
+		}
+		items = append(items, item)
+	}
+
+	order.Items = items
+
+	return &order, nil
 }
 
 func (r *OrderRepo) GetOrderCount(ctx context.Context) (int, error) {

@@ -126,13 +126,26 @@ func (o *OrderServer) GetOrders(w http.ResponseWriter, r *http.Request, params e
 }
 
 func (o *OrderServer) CreateOrder(w http.ResponseWriter, r *http.Request) {
-	//TODO implement me
-	panic("implement me")
+
 }
 
-func (o OrderServer) GetOrderById(w http.ResponseWriter, r *http.Request, orderUid entity2.OrderId) {
-	//TODO implement me
-	panic("implement me")
+func (o *OrderServer) GetOrderById(w http.ResponseWriter, r *http.Request, orderUid entity2.OrderId) {
+	if orderUid == "" {
+		sendErrorResponse(w, http.StatusBadRequest, entity2.ErrorResponse{Reason: "Неверный формат запроса или его параметры."})
+		return
+	}
+
+	order, err := o.orderService.Repo.GetOrderById(r.Context(), orderUid)
+	if err != nil {
+		sendErrorResponse(w, http.StatusNotFound, entity2.ErrorResponse{Reason: "Заказ не найден."})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(order); err != nil {
+		sendErrorResponse(w, http.StatusInternalServerError, entity2.ErrorResponse{Reason: "Ошибка кодирования ответа."})
+	}
 }
 
 func (o OrderServer) GetApiPing(w http.ResponseWriter, r *http.Request) {

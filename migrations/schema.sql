@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS delivery (
 );
 
 CREATE TABLE IF NOT EXISTS payment (
-    transaction VARCHAR(100) REFERENCES orders(order_uid) ON DELETE CASCADE,
+    transaction_id VARCHAR(100) REFERENCES orders(order_uid) ON DELETE CASCADE,
     request_id VARCHAR(100) NOT NULL ,
     currency VARCHAR(50) NOT NULL ,
     provider VARCHAR(100) NOT NULL ,
@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS payment (
 
 CREATE TABLE IF NOT EXISTS items (
     chrt_id BIGINT PRIMARY KEY ,
+    order_id VARCHAR(100) REFERENCES orders(order_uid) ON DELETE CASCADE,
     track_number VARCHAR(100) NOT NULL  ,
     price FLOAT NOT NULL  ,
     rid VARCHAR(100) NOT NULL  ,
@@ -52,9 +53,9 @@ CREATE TABLE IF NOT EXISTS orders (
     date_created TIMESTAMPTZ NOT NULL,
     oof_shard VARCHAR(5) NOT NULL,
 
-    constraint fk_orders_delivery foreign key (order_uid) references delivery(id),
-    constraint fk_orders_payment foreign key (order_uid) references payment(transaction),
-    constraint fk_orders_items foreign key (order_uid) references items(chrt_id)
+ --   constraint fk_orders_delivery foreign key (order_uid) references delivery(id),
+ --   constraint fk_orders_payment foreign key (order_uid) references payment(transaction),
+ --   constraint fk_orders_items foreign key (order_uid) references items(chrt_id)
 );
 
 
