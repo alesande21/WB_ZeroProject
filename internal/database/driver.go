@@ -1,7 +1,7 @@
 package database
 
 import (
-	"AvitoProject/internal/colorAttribute"
+	"WB_ZeroProject/internal/colorAttribute"
 	"database/sql"
 	"fmt"
 	_ "github.com/lib/pq"

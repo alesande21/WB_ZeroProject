@@ -1,7 +1,7 @@
 package main
 
 import (
-	"AvitoProject/internal/app"
+	"WB_ZeroProject/internal/app"
 )
 
 func main() {

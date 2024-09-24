@@ -132,7 +132,7 @@ func (r *OrderRepo) CreateOrder(ctx context.Context, newOrders []entity2.Order) 
 
 	}
 
-	return nil, nil
+	return newOrders, nil
 }
 
 func (r *OrderRepo) GetOrderById(ctx context.Context, orderId entity2.OrderId) (*entity2.Order, error) {

@@ -1,7 +1,7 @@
 package config
 
 import (
-	"AvitoProject/internal/database"
+	"WB_ZeroProject/internal/database"
 	"errors"
 	"fmt"
 	"github.com/ilyakaznacheev/cleanenv"
