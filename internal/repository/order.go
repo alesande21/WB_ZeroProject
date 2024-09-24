@@ -4,6 +4,7 @@ import (
 	"WB_ZeroProject/internal/database"
 	entity2 "WB_ZeroProject/internal/entity"
 	"context"
+	"fmt"
 	_ "github.com/lib/pq"
 	"log"
 )
@@ -85,46 +86,51 @@ func (r *OrderRepo) CreateOrder(ctx context.Context, newOrders []entity2.Order) 
 		RETURNING chrt_id, track_number, price, rid, name, sale, size, total_price, nm_id, brand, status
 	`
 
+	tx, err := r.dbRepo.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("не удалось начать транзакцию: %v", err)
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
 	for _, order := range newOrders {
 		payment := order.Payment
-		row := r.dbRepo.QueryRow(ctx, queryPayment, payment.Transaction, payment.RequestId, payment.Currency,
+		row := tx.QueryRowContext(ctx, queryPayment, payment.Transaction, payment.RequestId, payment.Currency,
 			payment.Provider, payment.Amount, payment.PaymentDt, payment.Bank, payment.DeliveryCost, payment.GoodsTotal,
 			payment.CustomFee)
-		err := row.Scan(&payment.Transaction, &payment.RequestId, &payment.Currency, &payment.Provider, &payment.Amount,
+		err = row.Scan(&payment.Transaction, &payment.RequestId, &payment.Currency, &payment.Provider, &payment.Amount,
 			&payment.PaymentDt, &payment.Bank, &payment.DeliveryCost, &payment.GoodsTotal, &payment.CustomFee)
 		if err != nil {
 			log.Printf("Ошибка в вставке данных в таблицу платежей: %v\n", err)
 			return nil, err
 		}
+		order.Payment = payment
+		for i, item := range order.Items {
+			row = tx.QueryRowContext(ctx, queryItem, item.ChrtId, order.OrderUid, item.TrackNumber, item.Price,
+				item.Rid, item.Name, item.Sale, item.Size, item.TotalPrice, item.NmId, item.Brand, item.Status)
+			err = row.Scan(&item.ChrtId, &item.TrackNumber, &item.Price, &item.Rid, &item.Name, &item.Sale, &item.Size,
+				&item.TotalPrice, &item.NmId, &item.Brand, &item.Status)
+			if err != nil {
+				log.Printf("Ошибка в вставке данных в таблицу товаров: %v\n", err)
+				return nil, err
+			}
+			order.Items[i] = item
+		}
+		row = tx.QueryRowContext(ctx, queryOrder, order.OrderUid, order.TrackNumber, order.Entry, order.Locale,
+			order.InternalSignature, order.CustomerId, order.DeliveryService, order.Shardkey, order.SmId,
+			order.DateCreated, order.OofShard)
+		err = row.Scan(&order.OrderUid, &order.TrackNumber, &order.Entry, &order.Locale,
+			&order.InternalSignature, &order.CustomerId, &order.DeliveryService, &order.Shardkey, &order.SmId,
+			&order.DateCreated, &order.OofShard)
+		if err != nil {
+			log.Printf("Ошибка в вставке данных в таблицу заказов: %v\n", err)
+			return nil, err
+		}
 
 	}
-
-	//var createdTender e.Tender
-	//newUuid := utils.GenerateUUID()
-	//serverTime := utils.GetCurrentTimeRFC3339()
-	//
-	//row := r.dbRepo.QueryRow(ctx, query, newUuid, e.TenderStatusCreated, newTender.OrganizationId, serverTime, serverTime)
-	//
-	//err := row.Scan(&createdTender.Id, &createdTender.Status, &createdTender.OrganizationId, &createdTender.CreatedAt)
-	//if err != nil {
-	//	log.Printf("Ошибка выполнения запроса в CreateTender запрос 1: %v\n", err)
-	//	return nil, err
-	//}
-	//
-	//query2 := `
-	//	INSERT INTO tender_condition (tender_id, name, description, type, version)
-	//	VALUES ($1, $2, $3, $4, $5)
-	//	RETURNING name, description, type, version
-	//`
-	//
-	//row = r.dbRepo.QueryRow(ctx, query2, newUuid, newTender.Name, newTender.Description, newTender.ServiceType, 1)
-	//err = row.Scan(&createdTender.Name, &createdTender.Description, &createdTender.ServiceType, &createdTender.Version)
-	//if err != nil {
-	//	log.Printf("Ошибка выполнения запроса в CreateTender запрос 2: %v\n", err)
-	//	return nil, err
-	//}
-	//
-	//return &createdTender, nil
 
 	return nil, nil
 }

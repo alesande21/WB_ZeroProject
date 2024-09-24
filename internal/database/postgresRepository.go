@@ -24,6 +24,10 @@ func (p *postgresDBRepository) Exec(ctx context.Context, query string, args ...a
 	return p.Conn.ExecContext(ctx, query, args...)
 }
 
+func (p *postgresDBRepository) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error) {
+	return p.Conn.BeginTx(ctx, opts)
+}
+
 func (p *postgresDBRepository) Ping() error {
 	if p == nil {
 		return nil
