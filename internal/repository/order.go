@@ -62,13 +62,43 @@ func (r *OrderRepo) GetOrders(ctx context.Context, limit entity2.PaginationOffse
 	return nil, nil
 }
 
-func (r *OrderRepo) CreateOrder(ctx context.Context, newOrder entity2.CreateOrderJSONBody) (*entity2.Order, error) {
-	//query := `
-	//	INSERT INTO tender (id, status, organization_id, created_at, updated_at)
-	//	VALUES ($1, $2, $3, $4, $5)
-	//	RETURNING id, status, organization_id, created_at
-	//`
-	//
+func (r *OrderRepo) CreateOrder(ctx context.Context, newOrders []entity2.Order) ([]entity2.Order, error) {
+	queryOrder := `
+		INSERT INTO orders (order_uid, track_number, entry, locale, internal_signature, customer_id, delivery_service, 
+		                   shardkey, sm_id, date_created, oof_shard)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		RETURNING order_uid, track_number, entry, locale, internal_signature, customer_id, delivery_service, 
+		                   shardkey, sm_id, date_created, oof_shard
+	`
+
+	queryPayment := `
+		INSERT INTO payment (transaction_id, request_id, currency, provider, amount, payment_dt, bank, delivery_cost, 
+		       goods_total, custom_fee)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		RETURNING transaction_id, request_id, currency, provider, amount, payment_dt, bank, delivery_cost, 
+		       goods_total, custom_fee
+	`
+
+	queryItem := `
+		INSERT INTO items (chrt_id, order_id, track_number, price, rid, name, sale, size, total_price, nm_id, brand, status)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		RETURNING chrt_id, track_number, price, rid, name, sale, size, total_price, nm_id, brand, status
+	`
+
+	for _, order := range newOrders {
+		payment := order.Payment
+		row := r.dbRepo.QueryRow(ctx, queryPayment, payment.Transaction, payment.RequestId, payment.Currency,
+			payment.Provider, payment.Amount, payment.PaymentDt, payment.Bank, payment.DeliveryCost, payment.GoodsTotal,
+			payment.CustomFee)
+		err := row.Scan(&payment.Transaction, &payment.RequestId, &payment.Currency, &payment.Provider, &payment.Amount,
+			&payment.PaymentDt, &payment.Bank, &payment.DeliveryCost, &payment.GoodsTotal, &payment.CustomFee)
+		if err != nil {
+			log.Printf("Ошибка в вставке данных в таблицу платежей: %v\n", err)
+			return nil, err
+		}
+
+	}
+
 	//var createdTender e.Tender
 	//newUuid := utils.GenerateUUID()
 	//serverTime := utils.GetCurrentTimeRFC3339()
@@ -119,7 +149,7 @@ func (r *OrderRepo) GetOrderById(ctx context.Context, orderId entity2.OrderId) (
 	}
 
 	query = `
-		SELECT request_id, currency, provider, amount, payment_dt, bank, delivery_cost, 
+		SELECT transaction_id, request_id, currency, provider, amount, payment_dt, bank, delivery_cost, 
 		       goods_total, custom_fee
 		FROM payment
 		WHERE transaction_id = $1
@@ -129,8 +159,8 @@ func (r *OrderRepo) GetOrderById(ctx context.Context, orderId entity2.OrderId) (
 
 	var payment entity2.Payment
 
-	err = row.Scan(&payment.RequestId, &payment.Currency, &payment.Provider, &payment.Amount, &payment.PaymentDt,
-		&payment.Bank, &payment.DeliveryCost, &payment.GoodsTotal, &payment.CustomFee)
+	err = row.Scan(&payment.Transaction, &payment.RequestId, &payment.Currency, &payment.Provider, &payment.Amount,
+		&payment.PaymentDt, &payment.Bank, &payment.DeliveryCost, &payment.GoodsTotal, &payment.CustomFee)
 	if err != nil {
 		log.Printf("Платежные данные по orderId не найдены: %v\n", err)
 		return nil, err

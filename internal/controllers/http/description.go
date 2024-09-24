@@ -9,6 +9,7 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/invopop/yaml"
 	"io"
+	"log"
 	"net/http"
 	"os"
 )
@@ -126,7 +127,24 @@ func (o *OrderServer) GetOrders(w http.ResponseWriter, r *http.Request, params e
 }
 
 func (o *OrderServer) CreateOrder(w http.ResponseWriter, r *http.Request) {
+	var newOrders []entity2.Order
+	if err := json.NewDecoder(r.Body).Decode(&newOrders); err != nil {
+		log.Println("Неверный формат для заказа!")
+		sendErrorResponse(w, http.StatusBadRequest, entity2.ErrorResponse{Reason: "Неверный формат для заказа."})
+		return
+	}
 
+	orders, err := o.orderService.Repo.CreateOrder(r.Context(), newOrders)
+	if err != nil {
+		sendErrorResponse(w, http.StatusInternalServerError, entity2.ErrorResponse{Reason: "Ошибка создания заказа."})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(orders); err != nil {
+		sendErrorResponse(w, http.StatusInternalServerError, entity2.ErrorResponse{Reason: "Ошибка кодирования ответа."})
+	}
 }
 
 func (o *OrderServer) GetOrderById(w http.ResponseWriter, r *http.Request, orderUid entity2.OrderId) {
