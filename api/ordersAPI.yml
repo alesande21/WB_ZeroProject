@@ -5,7 +5,7 @@ info:
     description: |
       API для управления доставкой.
 servers:
-  - url: /api
+  - url: http://localhost:8080
     description: Локальный сервер API
 
 paths:
@@ -141,8 +141,6 @@ components:
       type: object
       description: Информация о доставке
       properties:
-        id:
-          $ref: "#/components/schemas/orderId"
         name:
           $ref: "#/components/schemas/deliveryName"
         phone:
@@ -159,7 +157,6 @@ components:
           $ref: "#/components/schemas/deliveryEmail"
 
       required:
-        - id
         - name
         - phone
         - zip
@@ -346,9 +343,9 @@ components:
         $ref: "#/components/schemas/item"
 
     entry:
-        type: string
-        description: Код тороговой площадки или компании
-        maxLength: 50
+      type: string
+      description: Код тороговой площадки или компании
+      maxLength: 50
     orderLocale:
       type: string
       description: Язык или региональные настройки

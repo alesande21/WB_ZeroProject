@@ -8,7 +8,6 @@ import (
 // CustomerId Идентификатор покупателя
 type CustomerId = string
 
-// Delivery Информация о доставке
 type Delivery struct {
 	// Address Адрес доставки
 	Address DeliveryAddress `json:"address"`
@@ -18,9 +17,6 @@ type Delivery struct {
 
 	// Email Электронный адрес адресата доставки
 	Email DeliveryEmail `json:"email"`
-
-	// Id Уникальный идентификатор заказа
-	Id OrderId `json:"id"`
 
 	// Name Полное навзание доставки
 	Name DeliveryName `json:"name"`

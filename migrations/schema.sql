@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS orders (
     shardkey VARCHAR(10) NOT NULL  ,
     sm_id BIGINT NOT NULL  ,
     date_created TIMESTAMPTZ NOT NULL,
-    oof_shard VARCHAR(5) NOT NULL,
+    oof_shard VARCHAR(5) NOT NULL
 
  --   constraint fk_orders_delivery foreign key (order_uid) references delivery(id),
  --   constraint fk_orders_payment foreign key (order_uid) references payment(transaction),
