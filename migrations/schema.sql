@@ -1,3 +1,21 @@
+CREATE TABLE IF NOT EXISTS orders (
+                                      order_uid VARCHAR(100) PRIMARY KEY ,
+                                      track_number VARCHAR(100) NOT NULL ,
+                                      entry VARCHAR(50) NOT NULL ,
+                                      locale VARCHAR(50) NOT NULL  ,
+                                      internal_signature VARCHAR(50) NOT NULL  ,
+                                      customer_id VARCHAR(100) NOT NULL  ,
+                                      delivery_service VARCHAR(100) NOT NULL  ,
+                                      shardkey VARCHAR(10) NOT NULL  ,
+                                      sm_id BIGINT NOT NULL  ,
+                                      date_created TIMESTAMPTZ NOT NULL,
+                                      oof_shard VARCHAR(5) NOT NULL
+
+    --   constraint fk_orders_delivery foreign key (order_uid) references delivery(id),
+    --   constraint fk_orders_payment foreign key (order_uid) references payment(transaction),
+    --   constraint fk_orders_items foreign key (order_uid) references items(chrt_id)
+);
+
 CREATE TABLE IF NOT EXISTS delivery (
      id SERIAL PRIMARY KEY,
      order_id VARCHAR(100) REFERENCES orders(order_uid) ON DELETE CASCADE,
@@ -39,25 +57,6 @@ CREATE TABLE IF NOT EXISTS items (
     brand VARCHAR(50) NOT NULL  ,
     status INT NOT NULL
 );
-
-CREATE TABLE IF NOT EXISTS orders (
-    order_uid VARCHAR(100) PRIMARY KEY ,
-    track_number VARCHAR(100) NOT NULL ,
-    entry VARCHAR(50) NOT NULL ,
-    locale VARCHAR(50) NOT NULL  ,
-    internal_signature VARCHAR(50) NOT NULL  ,
-    customer_id VARCHAR(100) NOT NULL  ,
-    delivery_service VARCHAR(100) NOT NULL  ,
-    shardkey VARCHAR(10) NOT NULL  ,
-    sm_id BIGINT NOT NULL  ,
-    date_created TIMESTAMPTZ NOT NULL,
-    oof_shard VARCHAR(5) NOT NULL
-
- --   constraint fk_orders_delivery foreign key (order_uid) references delivery(id),
- --   constraint fk_orders_payment foreign key (order_uid) references payment(transaction),
- --   constraint fk_orders_items foreign key (order_uid) references items(chrt_id)
-);
-
 
 
 

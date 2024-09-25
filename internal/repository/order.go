@@ -86,6 +86,12 @@ func (r *OrderRepo) CreateOrder(ctx context.Context, newOrders []entity2.Order) 
 		RETURNING chrt_id, track_number, price, rid, name, sale, size, total_price, nm_id, brand, status
 	`
 
+	queryDelivery := `
+		INSERT INTO delivery (order_id, name, phone, zip, city, address, region, email)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		RETURNING name, phone, zip, city, address, region, email
+	`
+
 	tx, err := r.dbRepo.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("не удалось начать транзакцию: %v", err)
@@ -97,8 +103,29 @@ func (r *OrderRepo) CreateOrder(ctx context.Context, newOrders []entity2.Order) 
 	}()
 
 	for _, order := range newOrders {
+		row := tx.QueryRowContext(ctx, queryOrder, order.OrderUid, order.TrackNumber, order.Entry, order.Locale,
+			order.InternalSignature, order.CustomerId, order.DeliveryService, order.Shardkey, order.SmId,
+			order.DateCreated, order.OofShard)
+		err = row.Scan(&order.OrderUid, &order.TrackNumber, &order.Entry, &order.Locale,
+			&order.InternalSignature, &order.CustomerId, &order.DeliveryService, &order.Shardkey, &order.SmId,
+			&order.DateCreated, &order.OofShard)
+		if err != nil {
+			log.Printf("Ошибка в вставке данных в таблицу заказов: %v\n", err)
+			return nil, err
+		}
+		delivery := order.Delivery
+
+		row = tx.QueryRowContext(ctx, queryDelivery, order.OrderUid, delivery.Name, delivery.Phone, delivery.Zip,
+			delivery.City, delivery.Address, delivery.Region, delivery.Email)
+		err = row.Scan(&delivery.Name, &delivery.Phone, &delivery.Zip, &delivery.City, &delivery.Address,
+			&delivery.Region, &delivery.Email)
+		if err != nil {
+			log.Printf("Ошибка в вставке данных в таблицу доставка: %v\n", err)
+			return nil, err
+		}
+
 		payment := order.Payment
-		row := tx.QueryRowContext(ctx, queryPayment, payment.Transaction, payment.RequestId, payment.Currency,
+		row = tx.QueryRowContext(ctx, queryPayment, payment.Transaction, payment.RequestId, payment.Currency,
 			payment.Provider, payment.Amount, payment.PaymentDt, payment.Bank, payment.DeliveryCost, payment.GoodsTotal,
 			payment.CustomFee)
 		err = row.Scan(&payment.Transaction, &payment.RequestId, &payment.Currency, &payment.Provider, &payment.Amount,
@@ -119,17 +146,11 @@ func (r *OrderRepo) CreateOrder(ctx context.Context, newOrders []entity2.Order) 
 			}
 			order.Items[i] = item
 		}
-		row = tx.QueryRowContext(ctx, queryOrder, order.OrderUid, order.TrackNumber, order.Entry, order.Locale,
-			order.InternalSignature, order.CustomerId, order.DeliveryService, order.Shardkey, order.SmId,
-			order.DateCreated, order.OofShard)
-		err = row.Scan(&order.OrderUid, &order.TrackNumber, &order.Entry, &order.Locale,
-			&order.InternalSignature, &order.CustomerId, &order.DeliveryService, &order.Shardkey, &order.SmId,
-			&order.DateCreated, &order.OofShard)
-		if err != nil {
-			log.Printf("Ошибка в вставке данных в таблицу заказов: %v\n", err)
-			return nil, err
-		}
 
+	}
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
 	}
 
 	return newOrders, nil
@@ -140,7 +161,7 @@ func (r *OrderRepo) GetOrderById(ctx context.Context, orderId entity2.OrderId) (
 		SELECT order_uid, track_number, entry, locale, internal_signature, customer_id, delivery_service, shardkey,
 		       sm_id, date_created, oof_shard
 		FROM orders
-		WHERE id = $1
+		WHERE order_uid = $1
 	`
 
 	row := r.dbRepo.QueryRow(ctx, query, orderId)
@@ -177,7 +198,7 @@ func (r *OrderRepo) GetOrderById(ctx context.Context, orderId entity2.OrderId) (
 	query = `
 		SELECT chrt_id, track_number, price, rid, name, sale, size, total_price, nm_id, brand, status
 		FROM items
-		WHERE transaction_id = $1
+		WHERE order_id = $1
 	`
 
 	rows, err := r.dbRepo.Query(ctx, query, orderId)

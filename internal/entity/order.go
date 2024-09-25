@@ -8,6 +8,7 @@ import (
 // CustomerId Идентификатор покупателя
 type CustomerId = string
 
+// Delivery Информация о доставке
 type Delivery struct {
 	// Address Адрес доставки
 	Address DeliveryAddress `json:"address"`
@@ -242,7 +243,7 @@ type PaymentCustomFee = float64
 type PaymentDeliveryCost = float64
 
 // PaymentDt Время транзакции в формате Unix-времени
-type PaymentDt = string
+type PaymentDt = int64
 
 // PaymentGoodsTotal Общая стоимость товаров без учета доставки
 type PaymentGoodsTotal = float64

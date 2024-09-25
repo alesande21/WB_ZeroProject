@@ -165,7 +165,6 @@ components:
         - region
         - email
       example:
-        id: b563feb7b2b84b6test1
         name: Test Testov
         phone: +9720000000
         zip: 2639809
@@ -195,10 +194,10 @@ components:
       description: Сумма транзакции
       format: double
     paymentDt:
-      type: string
+      type: integer
       description: Время транзакции в формате Unix-времени
       example: 1637907727
-      maxLength: 50
+      format: int64
     paymentBank:
       type: string
       description: Банк транзакции
