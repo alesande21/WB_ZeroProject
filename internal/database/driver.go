@@ -6,10 +6,20 @@ import (
 	"fmt"
 	_ "github.com/lib/pq"
 	"log"
+	"time"
+)
+
+const (
+	DefaultMaxConnAttemp     = 10
+	DefaultConnTimeout       = time.Second
+	DefaultConnBackoffFactor = 2
 )
 
 type DBConnection struct {
-	Conn *sql.DB
+	Conn              *sql.DB
+	connMax           int
+	connTimeout       time.Duration
+	connBackoffFactor int
 }
 
 func (db *DBConnection) Close() error {
@@ -50,7 +60,8 @@ func Open(cfg *DBConfig) (*DBConnection, error) {
 
 	log.Println(colorAttribute.ColorString(colorAttribute.FgYellow, "Успешное подключение к базе данных!"))
 
-	return &DBConnection{Conn: db}, nil
+	return &DBConnection{Conn: db, connMax: DefaultMaxConnAttemp, connTimeout: DefaultConnTimeout,
+		connBackoffFactor: DefaultConnBackoffFactor}, nil
 }
 
 func (db *DBConnection) GetConn() (*sql.DB, error) {
@@ -62,4 +73,41 @@ func (db *DBConnection) GetConn() (*sql.DB, error) {
 
 func (db *DBConnection) GetConn2() *sql.DB {
 	return db.Conn
+}
+
+func (db *DBConnection) CheckConn(cfg *DBConfig, connChan chan *sql.DB) {
+	var err error
+	attempt := 0
+	for attempt < db.connMax {
+		err = db.Conn.Ping()
+		if err != nil {
+			log.Printf("Потеряно соединение с базой данных. Попытка восстановления (%d/%d)", attempt+1, db.connMax)
+
+			var newDb *sql.DB
+			newDb, err = sql.Open(cfg.Driver, cfg.URL)
+			if err != nil {
+				log.Printf("Не удалось подключиться к базе данных. Попытка %d/%d", attempt+1, db.connMax)
+				attempt++
+			} else {
+				log.Println("Соединение с базой данных успешно восстановлено!")
+				db.Conn = newDb
+				connChan <- newDb
+				attempt = 0
+			}
+		}
+		backoff := db.connTimeout * time.Duration(attempt+1) * time.Duration(db.connBackoffFactor)
+		time.Sleep(backoff)
+	}
+
+	if attempt == db.connMax {
+		log.Println("Все попытки подключения исчерпаны. Соединение не восстановлено.")
+	}
+}
+
+func (db *DBConnection) InterapterConn() {
+	for {
+		time.Sleep(time.Second * 30)
+		db.Conn.Close()
+		log.Println("СОЕДИНЕНИЕ РАЗОРВАНО")
+	}
 }

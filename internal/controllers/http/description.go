@@ -153,7 +153,7 @@ func (o *OrderServer) GetOrderById(w http.ResponseWriter, r *http.Request, order
 		return
 	}
 
-	order, err := o.orderService.Repo.GetOrderById(r.Context(), orderUid)
+	order, err := o.orderService.GetOrderById(r.Context(), orderUid)
 	if err != nil {
 		sendErrorResponse(w, http.StatusNotFound, entity2.ErrorResponse{Reason: "Заказ не найден."})
 		return

@@ -5,11 +5,12 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/lib/pq"
+	"log"
 )
 
 type postgresDBRepository struct {
+	// TODO: вместо соединения поставить функцию
 	Conn *sql.DB
-	//sync.Mutex
 }
 
 func (p *postgresDBRepository) Query(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
@@ -43,7 +44,17 @@ func (p *postgresDBRepository) Ping() error {
 	return nil
 }
 
-func CreatePostgresRepository(db *sql.DB) (DBRepository, error) {
+func (p *postgresDBRepository) UpdateConn(updateConn *sql.DB) {
+	p.Conn = updateConn
+}
+
+func CreatePostgresRepository(db *sql.DB, connChan chan *sql.DB) (DBRepository, error) {
 	var rep DBRepository = &postgresDBRepository{Conn: db}
+	go func() {
+		for newConn := range connChan {
+			log.Println("Обновление подключения к базе данных в репозитории...")
+			rep.UpdateConn(newConn)
+		}
+	}()
 	return rep, nil
 }

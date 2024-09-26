@@ -7,6 +7,7 @@ import (
 	database2 "WB_ZeroProject/internal/database"
 	repository2 "WB_ZeroProject/internal/repository"
 	service2 "WB_ZeroProject/internal/service"
+	"database/sql"
 	"fmt"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/context"
@@ -50,17 +51,28 @@ func Run() {
 		fmt.Fprintf(os.Stderr, "проблемы с драйвером подключения на этапе открытия\n: %s", err)
 		return
 	}
-	defer func(conn *database2.DBConnection) {
-		err := conn.Close()
-		if err != nil {
-
+	//defer func(conn *database2.DBConnection) {
+	//	err := conn.Close()
+	//	if err != nil {
+	//
+	//	}
+	//}(conn)
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Printf("Ошибка при закрытии соединения с базой данных: %s", err)
 		}
-	}(conn)
+	}()
+
+	go conn.InterapterConn()
+
+	chanDbConn := make(chan *sql.DB)
+	defer close(chanDbConn)
+	go conn.CheckConn(config.GetDBsConfig(), chanDbConn)
 
 	// Инициализация репозитория
 	log.Println("Инициализация репозитория...")
 	var postgresRep database2.DBRepository
-	postgresRep, err = database2.CreatePostgresRepository(conn.GetConn2())
+	postgresRep, err = database2.CreatePostgresRepository(conn.GetConn2(), chanDbConn)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "проблемы с созданием PostgresRepository \n: %s", err)
 		return
@@ -73,7 +85,8 @@ func Run() {
 	//}
 
 	log.Println("Инициализация сервиса...")
-	orderRepo := repository2.NewOrderRepo(postgresRep)
+	cache := database2.NewCache()
+	orderRepo := repository2.NewOrderRepo(postgresRep, cache)
 	orderService := service2.NewOrderService(orderRepo)
 
 	log.Println("Загрузка настроек для сервера...")

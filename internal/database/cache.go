@@ -15,7 +15,7 @@ type cache struct {
 	sync.RWMutex
 }
 
-func newCache() *AllCache {
+func NewCache() *AllCache {
 	orders := make(map[entity2.OrderId]entity2.Order)
 	c := cache{
 		orders:  orders,
@@ -32,6 +32,29 @@ func (c *AllCache) Get(k string) (*entity2.Order, bool) {
 		return nil, false
 	}
 	return &order, true
+}
+
+func (c *AllCache) Set(k string, value entity2.Order) {
+	c.Lock()
+	c.orders[k] = value
+	c.Unlock()
+}
+
+func (c *AllCache) ItemCount() int {
+	c.RLock()
+	n := len(c.orders)
+	c.RUnlock()
+	return n
+}
+
+func (c *AllCache) Delete(k string) bool {
+	c.Lock()
+	defer c.Unlock()
+	if _, found := c.orders[k]; found {
+		delete(c.orders, k)
+		return true
+	}
+	return false
 }
 
 /*
@@ -74,26 +97,3 @@ func (c *cache) Set(k string, x interface{}, d time.Duration) {
 	c.mu.Unlock()
 }
 */
-
-func (c *AllCache) Set(k string, value entity2.Order) {
-	c.Lock()
-	c.orders[k] = value
-	c.Unlock()
-}
-
-func (c *AllCache) ItemCount() int {
-	c.RLock()
-	n := len(c.orders)
-	c.RUnlock()
-	return n
-}
-
-func (c *AllCache) Delete(k string) bool {
-	c.Lock()
-	defer c.Unlock()
-	if _, found := c.orders[k]; found {
-		delete(c.orders, k)
-		return true
-	}
-	return false
-}
