@@ -6,15 +6,17 @@ import (
 	"context"
 	"fmt"
 	_ "github.com/lib/pq"
+	"github.com/patrickmn/go-cache"
 	"log"
 )
 
 type OrderRepo struct {
 	dbRepo database.DBRepository
+	cache  *cache.Cache
 }
 
-func NewOrderRepo(dbRepo database.DBRepository) *OrderRepo {
-	return &OrderRepo{dbRepo: dbRepo}
+func NewOrderRepo(dbRepo database.DBRepository, cache *cache.Cache) *OrderRepo {
+	return &OrderRepo{dbRepo: dbRepo, cache: cache}
 }
 
 func (r *OrderRepo) GetOrders(ctx context.Context, limit entity2.PaginationOffset, offset entity2.PaginationOffset) ([]entity2.Order, error) {
@@ -239,4 +241,8 @@ func (r *OrderRepo) GetOrderCount(ctx context.Context) (int, error) {
 
 func (r *OrderRepo) Ping() error {
 	return r.dbRepo.Ping()
+}
+
+func (r *OrderRepo) UpdateCache() {
+
 }

@@ -25,8 +25,13 @@ func newCache() *allCache {
 }
 
 func (c *allCache) Get(k string) (*entity2.Order, bool) {
-
-	return nil, false
+	c.RLock()
+	defer c.RUnlock()
+	order, found := c.orders[k]
+	if !found {
+		return nil, false
+	}
+	return &order, true
 }
 
 /*
@@ -70,7 +75,25 @@ func (c *cache) Set(k string, x interface{}, d time.Duration) {
 }
 */
 
-func (c *allCache) Set(k string, value entity2.Order) bool {
+func (c *allCache) Set(k string, value entity2.Order) {
+	c.Lock()
+	c.orders[k] = value
+	c.Unlock()
+}
 
+func (c *allCache) ItemCount() int {
+	c.RLock()
+	n := len(c.orders)
+	c.RUnlock()
+	return n
+}
+
+func (c *allCache) Delete(k string) bool {
+	c.Lock()
+	defer c.Unlock()
+	if _, found := c.orders[k]; found {
+		delete(c.orders, k)
+		return true
+	}
 	return false
 }
