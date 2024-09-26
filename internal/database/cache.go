@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-type allCache struct {
+type AllCache struct {
 	*cache
 }
 
@@ -15,16 +15,16 @@ type cache struct {
 	sync.RWMutex
 }
 
-func newCache() *allCache {
+func newCache() *AllCache {
 	orders := make(map[entity2.OrderId]entity2.Order)
 	c := cache{
 		orders:  orders,
 		RWMutex: sync.RWMutex{},
 	}
-	return &allCache{&c}
+	return &AllCache{&c}
 }
 
-func (c *allCache) Get(k string) (*entity2.Order, bool) {
+func (c *AllCache) Get(k string) (*entity2.Order, bool) {
 	c.RLock()
 	defer c.RUnlock()
 	order, found := c.orders[k]
@@ -75,20 +75,20 @@ func (c *cache) Set(k string, x interface{}, d time.Duration) {
 }
 */
 
-func (c *allCache) Set(k string, value entity2.Order) {
+func (c *AllCache) Set(k string, value entity2.Order) {
 	c.Lock()
 	c.orders[k] = value
 	c.Unlock()
 }
 
-func (c *allCache) ItemCount() int {
+func (c *AllCache) ItemCount() int {
 	c.RLock()
 	n := len(c.orders)
 	c.RUnlock()
 	return n
 }
 
-func (c *allCache) Delete(k string) bool {
+func (c *AllCache) Delete(k string) bool {
 	c.Lock()
 	defer c.Unlock()
 	if _, found := c.orders[k]; found {

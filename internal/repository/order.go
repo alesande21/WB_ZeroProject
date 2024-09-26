@@ -6,16 +6,16 @@ import (
 	"context"
 	"fmt"
 	_ "github.com/lib/pq"
-	"github.com/patrickmn/go-cache"
+	_ "github.com/patrickmn/go-cache"
 	"log"
 )
 
 type OrderRepo struct {
 	dbRepo database.DBRepository
-	cache  *cache.Cache
+	cache  *database.AllCache
 }
 
-func NewOrderRepo(dbRepo database.DBRepository, cache *cache.Cache) *OrderRepo {
+func NewOrderRepo(dbRepo database.DBRepository, cache *database.AllCache) *OrderRepo {
 	return &OrderRepo{dbRepo: dbRepo, cache: cache}
 }
 
@@ -158,7 +158,7 @@ func (r *OrderRepo) CreateOrder(ctx context.Context, newOrders []entity2.Order) 
 	return newOrders, nil
 }
 
-func (r *OrderRepo) GetOrderById(ctx context.Context, orderId entity2.OrderId) (*entity2.Order, error) {
+func (r *OrderRepo) GetOrderByIdFromDb(ctx context.Context, orderId entity2.OrderId) (*entity2.Order, error) {
 	query := `
 		SELECT order_uid, track_number, entry, locale, internal_signature, customer_id, delivery_service, shardkey,
 		       sm_id, date_created, oof_shard
@@ -243,6 +243,34 @@ func (r *OrderRepo) Ping() error {
 	return r.dbRepo.Ping()
 }
 
-func (r *OrderRepo) UpdateCache() {
+func (r *OrderRepo) UpdateCache(ctx context.Context) {
+	c, err := r.GetOrderCount(ctx)
+	if err != nil || c == 0 {
+		log.Printf("Ошибка обновление кеша: %v. Количество элементов в базе данных: %d", err, c)
+		return
+	}
 
+	orders, err := r.GetOrders(ctx, entity2.PaginationLimit(c), 0)
+	if err != nil {
+		log.Printf("Ошибка при обновление кеша: %v", err)
+		return
+	}
+
+	for _, order := range orders {
+		r.cache.Set(order.OrderUid, order)
+	}
+
+}
+
+func (r *OrderRepo) GetOrderByIdFromCache(orderId entity2.OrderId) (*entity2.Order, error) {
+	if r.cache.ItemCount() == 0 {
+		return nil, fmt.Errorf("нет элементов в кеше")
+	}
+
+	order, found := r.cache.Get(orderId)
+	if !found {
+		return nil, fmt.Errorf("заказ под %s найден", orderId)
+	}
+
+	return order, nil
 }
