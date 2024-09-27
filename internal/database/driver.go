@@ -64,18 +64,23 @@ func Open(cfg *DBConfig) (*DBConnection, error) {
 		connBackoffFactor: DefaultConnBackoffFactor}, nil
 }
 
-func (db *DBConnection) GetConn() (*sql.DB, error) {
+// GetConn2 TODO: удалить если не нужен
+func (db *DBConnection) GetConn2() (*sql.DB, error) {
 	if db.Conn == nil {
 		return nil, fmt.Errorf("драйвер подключения отсутсвует")
 	}
 	return db.Conn, nil
 }
 
-func (db *DBConnection) GetConn2() *sql.DB {
+func (db *DBConnection) GetConn() *sql.DB {
+	if db.Conn == nil {
+		log.Printf("драйвер подключения отсутсвует")
+		return nil
+	}
 	return db.Conn
 }
 
-func (db *DBConnection) CheckConn(cfg *DBConfig, connChan chan *sql.DB) {
+func (db *DBConnection) CheckConn(cfg *DBConfig, updateCache chan interface{}) {
 	var err error
 	attempt := 0
 	for attempt < db.connMax {
@@ -91,7 +96,7 @@ func (db *DBConnection) CheckConn(cfg *DBConfig, connChan chan *sql.DB) {
 			} else {
 				log.Println("Соединение с базой данных успешно восстановлено!")
 				db.Conn = newDb
-				connChan <- newDb
+				updateCache <- struct{}{}
 				attempt = 0
 			}
 		}

@@ -8,6 +8,8 @@ import (
 	_ "github.com/lib/pq"
 	_ "github.com/patrickmn/go-cache"
 	"log"
+	"sync"
+	"time"
 )
 
 type OrderRepo struct {
@@ -259,7 +261,56 @@ func (r *OrderRepo) UpdateCache(ctx context.Context) {
 	for _, order := range orders {
 		r.cache.Set(order.OrderUid, order)
 	}
+}
 
+func (r *OrderRepo) ListenForDbChanges(ctx context.Context, updateCache <-chan interface{}) {
+	tickerCacheCheck := time.NewTicker(time.Second * 51)
+	tickerFullUpdate := time.NewTicker(6 * time.Minute)
+	defer tickerCacheCheck.Stop()
+	defer tickerFullUpdate.Stop()
+	var isUpdating bool
+	var mu sync.Mutex
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("Контекст завершен, прекращаем обновление кеша...")
+			return
+		case <-updateCache:
+			mu.Lock()
+			log.Println("Получено новое соединение с базой данных, обновляем кэш...")
+			if !isUpdating {
+				isUpdating = true
+				r.UpdateCache(ctx)
+				isUpdating = false
+			}
+			mu.Unlock()
+		case <-tickerCacheCheck.C:
+			mu.Lock()
+			log.Println("Проверка состояния кеша...")
+			if !isUpdating {
+				isUpdating = true
+				c, err := r.GetOrderCount(ctx)
+				if err != nil {
+					log.Printf("Ошибка при проверке состояние кеша: %v\n", err)
+				} else if c != r.cache.ItemCount() {
+					log.Printf("Количество элементов в базе данных: %d/%d, обновляем кэш...", c, r.cache.ItemCount())
+					r.UpdateCache(ctx)
+				}
+				isUpdating = false
+			}
+			mu.Unlock()
+		case <-tickerFullUpdate.C:
+			mu.Lock()
+			log.Println("Полное обновление кеша...")
+			if !isUpdating {
+				isUpdating = true
+				r.UpdateCache(ctx)
+				isUpdating = false
+			}
+			mu.Unlock()
+		}
+	}
 }
 
 func (r *OrderRepo) GetOrderByIdFromCache(orderId entity2.OrderId) (*entity2.Order, error) {

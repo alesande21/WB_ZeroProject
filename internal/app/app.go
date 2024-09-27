@@ -7,7 +7,6 @@ import (
 	database2 "WB_ZeroProject/internal/database"
 	repository2 "WB_ZeroProject/internal/repository"
 	service2 "WB_ZeroProject/internal/service"
-	"database/sql"
 	"fmt"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/context"
@@ -65,16 +64,16 @@ func Run() {
 
 	go conn.InterapterConn()
 
-	chanDbConn := make(chan *sql.DB)
-	defer close(chanDbConn)
-	go conn.CheckConn(config.GetDBsConfig(), chanDbConn)
+	updateCache := make(chan interface{})
+	defer close(updateCache)
+	go conn.CheckConn(config.GetDBsConfig(), updateCache)
 
 	// Инициализация репозитория
 	log.Println("Инициализация репозитория...")
 	var postgresRep database2.DBRepository
-	postgresRep, err = database2.CreatePostgresRepository(conn.GetConn2(), chanDbConn)
+	postgresRep, err = database2.CreatePostgresRepository(conn.GetConn)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "проблемы с созданием PostgresRepository \n: %s", err)
+		log.Printf("проблемы с инициализацией PostgresRepository: %s\n", err)
 		return
 	}
 
@@ -88,6 +87,11 @@ func Run() {
 	cache := database2.NewCache()
 	orderRepo := repository2.NewOrderRepo(postgresRep, cache)
 	orderService := service2.NewOrderService(orderRepo)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go orderRepo.ListenForDbChanges(ctx, updateCache)
 
 	log.Println("Загрузка настроек для сервера...")
 	var serverAddress http2.ServerAddress

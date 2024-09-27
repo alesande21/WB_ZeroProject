@@ -10,6 +10,7 @@ type DBRepository interface {
 	QueryRow(ctx context.Context, query string, args ...any) *sql.Row
 	Exec(ctx context.Context, query string, args ...any) (sql.Result, error)
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
-	UpdateConn(updateConn *sql.DB)
+	// TODO: убрать UpdateConn
+	//UpdateConn(updateConn *sql.DB)
 	Ping() error
 }
