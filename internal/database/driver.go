@@ -2,6 +2,7 @@ package database
 
 import (
 	"WB_ZeroProject/internal/colorAttribute"
+	"context"
 	"database/sql"
 	"fmt"
 	_ "github.com/lib/pq"
@@ -80,28 +81,49 @@ func (db *DBConnection) GetConn() *sql.DB {
 	return db.Conn
 }
 
-func (db *DBConnection) CheckConn(cfg *DBConfig, updateCache chan interface{}) {
+func (db *DBConnection) CheckConn(ctx context.Context, cfg *DBConfig, updateCache chan interface{}) {
 	var err error
 	attempt := 0
 	for attempt < db.connMax {
-		err = db.Conn.Ping()
-		if err != nil {
-			log.Printf("Потеряно соединение с базой данных. Попытка восстановления (%d/%d)", attempt+1, db.connMax)
-
-			var newDb *sql.DB
-			newDb, err = sql.Open(cfg.Driver, cfg.URL)
+		select {
+		case <-ctx.Done():
+			log.Printf("Проверка соединения остановлена...")
+			return
+		default:
+			err = db.Conn.Ping()
 			if err != nil {
-				log.Printf("Не удалось подключиться к базе данных. Попытка %d/%d", attempt+1, db.connMax)
-				attempt++
-			} else {
-				log.Println("Соединение с базой данных успешно восстановлено!")
-				db.Conn = newDb
-				updateCache <- struct{}{}
-				attempt = 0
+				log.Printf("Потеряно соединение с базой данных. Попытка восстановления (%d/%d)", attempt+1, db.connMax)
+
+				var newDb *sql.DB
+				newDb, err = sql.Open(cfg.Driver, cfg.URL)
+				if err != nil {
+					log.Printf("Не удалось подключиться к базе данных. Попытка %d/%d", attempt+1, db.connMax)
+					attempt++
+				} else {
+					log.Println("Соединение с базой данных успешно восстановлено!")
+					db.Conn = newDb
+					updateCache <- struct{}{}
+					attempt = 0
+				}
 			}
+
+			backoff := db.connTimeout * time.Duration(attempt+1) * time.Duration(db.connBackoffFactor)
+			sleepInterval := 10 * time.Microsecond
+			elapsedTime := time.Duration(0)
+
+			for elapsedTime < backoff {
+				select {
+				case <-ctx.Done():
+					log.Printf("Проверка соединения остановлена...")
+					return
+				default:
+					time.Sleep(sleepInterval)
+					elapsedTime += sleepInterval
+				}
+			}
+
 		}
-		backoff := db.connTimeout * time.Duration(attempt+1) * time.Duration(db.connBackoffFactor)
-		time.Sleep(backoff)
+
 	}
 
 	if attempt == db.connMax {

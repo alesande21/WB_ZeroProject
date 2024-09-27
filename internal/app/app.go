@@ -7,12 +7,16 @@ import (
 	database2 "WB_ZeroProject/internal/database"
 	repository2 "WB_ZeroProject/internal/repository"
 	service2 "WB_ZeroProject/internal/service"
+	"context"
+	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
-	"golang.org/x/net/context"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	middleware "github.com/oapi-codegen/nethttp-middleware"
 )
@@ -62,11 +66,14 @@ func Run() {
 		}
 	}()
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	go conn.InterapterConn()
 
 	updateCache := make(chan interface{})
 	defer close(updateCache)
-	go conn.CheckConn(config.GetDBsConfig(), updateCache)
+	go conn.CheckConn(ctx, config.GetDBsConfig(), updateCache)
 
 	// Инициализация репозитория
 	log.Println("Инициализация репозитория...")
@@ -87,9 +94,6 @@ func Run() {
 	cache := database2.NewCache()
 	orderRepo := repository2.NewOrderRepo(postgresRep, cache)
 	orderService := service2.NewOrderService(orderRepo)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	go orderRepo.ListenForDbChanges(ctx, updateCache)
 
@@ -123,7 +127,33 @@ func Run() {
 		Handler: r,
 	}
 
-	log.Printf("Подключнеие установлено -> %s", colorAttribute.ColorString(colorAttribute.FgYellow, serverAddress.EnvAddress))
-	log.Fatal(s.ListenAndServe())
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
+	shutDownChan := make(chan error, 1)
+
+	go func() {
+		shutDownChan <- s.ListenAndServe()
+	}()
+
+	log.Printf("Подключнеие установлено -> %s", colorAttribute.ColorString(colorAttribute.FgYellow, serverAddress.EnvAddress))
+
+	select {
+	case sig := <-interrupt:
+		log.Printf("Приложение прерывается: %s", sig)
+
+		ctxShutDown, cancelShutdown := context.WithTimeout(context.Background(), 10*time.Second)
+		cancel()
+		defer cancelShutdown()
+		err := s.Shutdown(ctxShutDown)
+		if err != nil {
+			log.Printf("Ошибка при завершении сервера: %v", err)
+		}
+
+		log.Println("Сервер завершил работу")
+	case err := <-shutDownChan:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("Ошибка при запуске сервера: %s", err)
+		}
+	}
 }
