@@ -118,7 +118,7 @@ func (db *DBConnection) CheckConn(ctx context.Context, cfg *DBConfig, updateCach
 					return
 				default:
 					time.Sleep(sleepInterval)
-					elapsedTime += sleepInterval
+					elapsedTime += sleepInterval * 100
 				}
 			}
 

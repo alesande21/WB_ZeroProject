@@ -13,6 +13,7 @@ type OrderRepo interface {
 	GetOrderByIdFromCache(orderId entity2.OrderId) (*entity2.Order, error)
 	GetOrderCount(ctx context.Context) (int, error)
 	UpdateCache(ctx context.Context)
+	GetOrderItems(ctx context.Context, orderUid string) ([]entity2.Item, error)
 	Ping() error
 }
 

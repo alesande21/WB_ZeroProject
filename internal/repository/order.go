@@ -64,7 +64,93 @@ func (r *OrderRepo) GetOrders(ctx context.Context, limit entity2.PaginationOffse
 	//	tenders = append(tenders, tender)
 	//}
 	//return tenders, nil
-	return nil, nil
+
+	queryOrder := `
+		SELECT o.order_uid, o.track_number, o.entry, o.locale, o.internal_signature, o.customer_id, 
+		       o.delivery_service, o.shardkey, o.sm_id, o.date_created, o.oof_shard,
+		       p.transaction_id, p.request_id, p.currency, p.provider, p.amount, p.payment_dt, p.bank, 
+		       p.delivery_cost, p.goods_total, p.custom_fee,
+		       d.name, d.phone, d.zip, d.city, d.address, d.region, d.email
+		FROM orders o
+		JOIN payment p ON o.order_uid = p.transaction_id
+		JOIN delivery d ON o.order_uid = d.order_id
+		ORDER BY o.date_created DESC
+		LIMIT $1 OFFSET $2
+	`
+
+	rows, err := r.dbRepo.Query(ctx, queryOrder, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка выполнения запроса выборки заказов: %v", err)
+	}
+	defer rows.Close()
+
+	var orders []entity2.Order
+
+	for rows.Next() {
+		var order entity2.Order
+		var payment entity2.Payment
+		var delivery entity2.Delivery
+
+		err = rows.Scan(
+			&order.OrderUid, &order.TrackNumber, &order.Entry, &order.Locale, &order.InternalSignature, &order.CustomerId,
+			&order.DeliveryService, &order.Shardkey, &order.SmId, &order.DateCreated, &order.OofShard,
+			&payment.Transaction, &payment.RequestId, &payment.Currency, &payment.Provider, &payment.Amount, &payment.PaymentDt,
+			&payment.Bank, &payment.DeliveryCost, &payment.GoodsTotal, &payment.CustomFee,
+			&delivery.Name, &delivery.Phone, &delivery.Zip, &delivery.City, &delivery.Address, &delivery.Region, &delivery.Email,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("ошибка в сканировании данных заказов: %v", err)
+		}
+
+		order.Payment = payment
+		order.Delivery = delivery
+
+		items, err := r.GetOrderItems(ctx, order.OrderUid)
+		if err != nil {
+			return nil, fmt.Errorf("ошибка при выборке товаров для заказа %s: %v", order.OrderUid, err)
+		}
+		order.Items = items
+
+		orders = append(orders, order)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("ошибка после итерации по строкам: %v", err)
+	}
+
+	return orders, nil
+}
+
+func (r *OrderRepo) GetOrderItems(ctx context.Context, orderUid string) ([]entity2.Item, error) {
+	queryItem := `
+		SELECT chrt_id, track_number, price, rid, name, sale, size, total_price, nm_id, brand, status
+		FROM items
+		WHERE order_id = $1
+	`
+
+	rows, err := r.dbRepo.Query(ctx, queryItem, orderUid)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка выполнения запроса выборки товаров: %v", err)
+	}
+	defer rows.Close()
+
+	var items []entity2.Item
+
+	for rows.Next() {
+		var item entity2.Item
+		err = rows.Scan(&item.ChrtId, &item.TrackNumber, &item.Price, &item.Rid, &item.Name, &item.Sale, &item.Size,
+			&item.TotalPrice, &item.NmId, &item.Brand, &item.Status)
+		if err != nil {
+			return nil, fmt.Errorf("ошибка в сканировании данных товаров: %v", err)
+		}
+		items = append(items, item)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("ошибка после итерации по строкам товаров: %v", err)
+	}
+
+	return items, nil
 }
 
 func (r *OrderRepo) CreateOrder(ctx context.Context, newOrders []entity2.Order) ([]entity2.Order, error) {
@@ -261,6 +347,7 @@ func (r *OrderRepo) UpdateCache(ctx context.Context) {
 	for _, order := range orders {
 		r.cache.Set(order.OrderUid, order)
 	}
+	log.Printf("Кеш обновлен. Количество элементов в кеше/базе данных: %d/%d", r.cache.ItemCount(), c)
 }
 
 func (r *OrderRepo) ListenForDbChanges(ctx context.Context, updateCache <-chan interface{}) {
