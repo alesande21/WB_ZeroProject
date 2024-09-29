@@ -30,17 +30,24 @@ func TestCreateOrder(t *testing.T) {
 	mock.ExpectQuery("INSERT INTO orders").WithArgs(
 		"uid123", "track123", "entry123", "en", "signature", "customer1", "delivery_service1",
 		"shard1", 123, "time", "oof1").
-		WillReturnRows(sqlmock.NewRows([]string{"order_uid"}).AddRow("uid123"))
+		WillReturnRows(sqlmock.NewRows([]string{"order_uid", "track_number", "entry", "locale", "internal_signature",
+			"customer_id", "delivery_service", "shardkey", "sm_id", "date_created", "oof_shard"}).
+			AddRow("uid123", "track123", "entry123", "en", "signature", "customer1", "delivery_service1",
+				"shard1", 123, "time", "oof1"))
 
 	// Мок для вставки доставки
 	mock.ExpectQuery("INSERT INTO delivery").WithArgs(
 		"uid123", "John Doe", "123456789", "12345", "City", "Address", "Region", "john@example.com").
-		WillReturnRows(sqlmock.NewRows([]string{"name"}).AddRow("John Doe"))
+		WillReturnRows(sqlmock.NewRows([]string{"transaction_id", "request_id", "currency", "provider", "amount",
+			"payment_dt", "bank", "delivery_cost", "goods_total", "custom_fee"}).AddRow("uid123", "John Doe",
+			"123456789", "12345", "City", "Address", "Region", "john@example.com"))
 
 	// Мок для вставки платежа
 	mock.ExpectQuery("INSERT INTO payment").WithArgs(
 		"trans123", "req123", "USD", "provider1", 100.50, 1234567890, "Bank", 10.00, 90.50, 0.00).
-		WillReturnRows(sqlmock.NewRows([]string{"transaction_id"}).AddRow("trans123"))
+		WillReturnRows(sqlmock.NewRows([]string{"transaction_id", "request_id", "currency", "provider", "amount",
+			"payment_dt", "bank", "delivery_cost", "goods_total", "custom_fee"}).AddRow("uid123", "John Doe",
+			"123456789", "12345", "City", "Address", "Region", "john@example.com"))
 
 	// Мок для вставки товаров
 	mock.ExpectQuery("INSERT INTO items").WithArgs(
