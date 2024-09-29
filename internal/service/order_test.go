@@ -2,15 +2,16 @@ package service
 
 import (
 	"WB_ZeroProject/internal/database"
-	e "WB_ZeroProject/internal/entity"
+	entity2 "WB_ZeroProject/internal/entity"
 	"WB_ZeroProject/internal/repository"
 	"context"
+	"database/sql"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-func TestGetTenders(t *testing.T) {
+func TestCreateOrder(t *testing.T) {
 	// Создаем мок базы данных
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -18,28 +19,104 @@ func TestGetTenders(t *testing.T) {
 	}
 	defer db.Close()
 
-	// Ожидаем вызов запроса
-	rows := sqlmock.NewRows([]string{"id", "name", "description", "type", "status", "organization_id", "version", "created_at"}).
-		AddRow("1", "Tender 1", "Description 1", "Construction", "Published", "org1", 1, "2024-01-01T12:00:00Z")
+	newConnection := func() *sql.DB {
+		return db
+	}
 
-	mock.ExpectQuery("SELECT t.id, tc.name, tc.description, tc.type, t.status").
-		WillReturnRows(rows)
+	// Инициализируем транзакцию
+	mock.ExpectBegin()
+
+	// Мок для вставки заказа
+	mock.ExpectQuery("INSERT INTO orders").WithArgs(
+		"uid123", "track123", "entry123", "en", "signature", "customer1", "delivery_service1",
+		"shard1", 123, "time", "oof1").
+		WillReturnRows(sqlmock.NewRows([]string{"order_uid"}).AddRow("uid123"))
+
+	// Мок для вставки доставки
+	mock.ExpectQuery("INSERT INTO delivery").WithArgs(
+		"uid123", "John Doe", "123456789", "12345", "City", "Address", "Region", "john@example.com").
+		WillReturnRows(sqlmock.NewRows([]string{"name"}).AddRow("John Doe"))
+
+	// Мок для вставки платежа
+	mock.ExpectQuery("INSERT INTO payment").WithArgs(
+		"trans123", "req123", "USD", "provider1", 100.50, 1234567890, "Bank", 10.00, 90.50, 0.00).
+		WillReturnRows(sqlmock.NewRows([]string{"transaction_id"}).AddRow("trans123"))
+
+	// Мок для вставки товаров
+	mock.ExpectQuery("INSERT INTO items").WithArgs(
+		111, "uid123", "track123", 100.0, "rid123", "Item1", 10.0, "L", 90.0, 101, "Brand1", 1).
+		WillReturnRows(sqlmock.NewRows([]string{"chrt_id"}).AddRow(111))
+
+	// Мок для коммита транзакции
+	mock.ExpectCommit()
 
 	// Инициализируем репозиторий
-	postGre, err := database.CreatePostgresRepository(db)
-	repo := repository.NewTenderRepo(postGre)
+	postGre, err := database.CreatePostgresRepository(newConnection)
+	if err != nil {
+		t.Fatalf("ошибка при инициализации репозитория: %s", err)
+	}
+	repo := repository.NewOrderRepo(postGre, nil)
+
+	// Создаем заказ для теста
+	newOrders := []entity2.Order{
+		{
+			OrderUid:          "uid123",
+			TrackNumber:       "track123",
+			Entry:             "entry123",
+			Locale:            "en",
+			InternalSignature: "signature",
+			CustomerId:        "customer1",
+			DeliveryService:   "delivery_service1",
+			Shardkey:          "shard1",
+			SmId:              123,
+			DateCreated:       "time",
+			OofShard:          "oof1",
+			Delivery: entity2.Delivery{
+				Name:    "John Doe",
+				Phone:   "123456789",
+				Zip:     "12345",
+				City:    "City",
+				Address: "Address",
+				Region:  "Region",
+				Email:   "john@example.com",
+			},
+			Payment: entity2.Payment{
+				Transaction:  "trans123",
+				RequestId:    "req123",
+				Currency:     "USD",
+				Provider:     "provider1",
+				Amount:       100.50,
+				PaymentDt:    1234567890,
+				Bank:         "Bank",
+				DeliveryCost: 10.00,
+				GoodsTotal:   90.50,
+				CustomFee:    0.00,
+			},
+			Items: []entity2.Item{
+				{
+					ChrtId:      111,
+					TrackNumber: "track123",
+					Price:       100.0,
+					Rid:         "rid123",
+					Name:        "Item1",
+					Sale:        10.0,
+					Size:        "L",
+					TotalPrice:  90.0,
+					NmId:        101,
+					Brand:       "Brand1",
+					Status:      1,
+				},
+			},
+		},
+	}
 
 	// Вызываем тестируемый метод
-	//serviceTypes := []e.TenderServiceType{"Construction"}
-	limit := e.PaginationLimit(5)
-	offset := e.PaginationOffset(0)
-	ctx := context.TODO()
-	tenders, err := repo.GetOrders(ctx, limit, offset)
+	orderIds, err := repo.CreateOrder(context.TODO(), newOrders)
 
 	// Проверяем результат
 	assert.NoError(t, err)
-	assert.Len(t, tenders, 1)
-	//assert.Equal(t, "Tender 1", tenders[0].Name)
+	assert.Len(t, orderIds, 1)
+	assert.Equal(t, "uid123", orderIds[0])
 
 	// Проверяем, что все ожидания моков выполнены
 	if err := mock.ExpectationsWereMet(); err != nil {

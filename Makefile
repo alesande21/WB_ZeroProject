@@ -29,7 +29,7 @@ tidy:
 	go mod tidy
 
 test:
-	go test .\internal\service\tender_test.go
+	go test .\internal\service\order_test.go
 
 cover:
 	go test .\internal\service\tender_test.go -cover

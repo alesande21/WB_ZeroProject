@@ -22,49 +22,6 @@ func NewOrderRepo(dbRepo database.DBRepository, cache *database.AllCache) *Order
 }
 
 func (r *OrderRepo) GetOrders(ctx context.Context, limit entity2.PaginationOffset, offset entity2.PaginationOffset) ([]entity2.Order, error) {
-	//errPing := r.Ping()
-	//if errPing != nil {
-	//	return nil, errPing
-	//}
-	//
-	//query := `
-	//		SELECT o.order_uid,
-	//			FROM orders o
-	//			LEFT JOIN tender_condition tc on o.id = o.tender_id
-	//
-	//	`
-	//
-	//var filters []string
-	//var args []interface{}
-	//argIndex := 1
-	//
-	//if len(filters) > 0 {
-	//	query += " AND " + filters[0]
-	//}
-	//
-	//query += fmt.Sprintf(" ORDER BY tc.name LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
-	//args = append(args, limit, offset)
-	//
-	//rows, err := r.dbRepo.Query(ctx, query, args...)
-	//if err != nil {
-	//	log.Printf("Ошибка выполнения запроса: %v\n", err)
-	//	return nil, err
-	//}
-	//defer rows.Close()
-	//
-	//var tenders []e.Tender
-	//for rows.Next() {
-	//	var tender e.Tender
-	//	err := rows.Scan(&tender.Id, &tender.Name, &tender.Description, &tender.ServiceType, &tender.Status,
-	//		&tender.OrganizationId, &tender.Version, &tender.CreatedAt)
-	//	if err != nil {
-	//		log.Printf("ошибка выполнения: %v\n", err)
-	//		return nil, err
-	//	}
-	//	tenders = append(tenders, tender)
-	//}
-	//return tenders, nil
-
 	queryOrder := `
 		SELECT o.order_uid, o.track_number, o.entry, o.locale, o.internal_signature, o.customer_id, 
 		       o.delivery_service, o.shardkey, o.sm_id, o.date_created, o.oof_shard,
@@ -153,7 +110,7 @@ func (r *OrderRepo) GetOrderItems(ctx context.Context, orderUid string) ([]entit
 	return items, nil
 }
 
-func (r *OrderRepo) CreateOrder(ctx context.Context, newOrders []entity2.Order) ([]entity2.Order, error) {
+func (r *OrderRepo) CreateOrder(ctx context.Context, newOrders []entity2.Order) ([]entity2.OrderId, error) {
 	queryOrder := `
 		INSERT INTO orders (order_uid, track_number, entry, locale, internal_signature, customer_id, delivery_service, 
 		                   shardkey, sm_id, date_created, oof_shard)
@@ -191,6 +148,8 @@ func (r *OrderRepo) CreateOrder(ctx context.Context, newOrders []entity2.Order) 
 			tx.Rollback()
 		}
 	}()
+
+	var orderIds []entity2.OrderId
 
 	for _, order := range newOrders {
 		row := tx.QueryRowContext(ctx, queryOrder, order.OrderUid, order.TrackNumber, order.Entry, order.Locale,
@@ -236,14 +195,14 @@ func (r *OrderRepo) CreateOrder(ctx context.Context, newOrders []entity2.Order) 
 			}
 			order.Items[i] = item
 		}
-
+		orderIds = append(orderIds, order.OrderUid)
 	}
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
 
-	return newOrders, nil
+	return orderIds, nil
 }
 
 func (r *OrderRepo) GetOrderByIdFromDb(ctx context.Context, orderId entity2.OrderId) (*entity2.Order, error) {
@@ -332,22 +291,56 @@ func (r *OrderRepo) Ping() error {
 }
 
 func (r *OrderRepo) UpdateCache(ctx context.Context) {
+	/*
+		c, err := r.GetOrderCount(ctx)
+		if err != nil || c == 0 {
+			log.Printf("Ошибка обновление кеша: %v. Количество элементов в базе данных: %d", err, c)
+			return
+		}
+
+		orders, err := r.GetOrders(ctx, entity2.PaginationLimit(c), 0)
+		if err != nil {
+			log.Printf("Ошибка при обновление кеша: %v", err)
+			return
+		}
+
+		for _, order := range orders {
+			r.cache.Set(order.OrderUid, order)
+		}
+		log.Printf("Кеш обновлен. Количество элементов в кеше/базе данных: %d/%d", r.cache.ItemCount(), c)
+
+
+	*/
+
 	c, err := r.GetOrderCount(ctx)
 	if err != nil || c == 0 {
 		log.Printf("Ошибка обновление кеша: %v. Количество элементов в базе данных: %d", err, c)
 		return
 	}
 
-	orders, err := r.GetOrders(ctx, entity2.PaginationLimit(c), 0)
-	if err != nil {
-		log.Printf("Ошибка при обновление кеша: %v", err)
-		return
+	const batchSize = 100
+	var offset int
+
+	for {
+		orders, err := r.GetOrders(ctx, entity2.PaginationLimit(batchSize), entity2.PaginationOffset(offset))
+		if err != nil {
+			log.Printf("Ошибка при обновлении кеша: %v", err)
+			return
+		}
+
+		if len(orders) == 0 {
+			break
+		}
+
+		for _, order := range orders {
+			r.cache.Set(order.OrderUid, order)
+		}
+
+		offset += batchSize
 	}
 
-	for _, order := range orders {
-		r.cache.Set(order.OrderUid, order)
-	}
 	log.Printf("Кеш обновлен. Количество элементов в кеше/базе данных: %d/%d", r.cache.ItemCount(), c)
+
 }
 
 func (r *OrderRepo) ListenForDbChanges(ctx context.Context, updateCache <-chan interface{}) {

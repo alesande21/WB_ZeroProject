@@ -90,41 +90,41 @@ func sendErrorResponse(w http.ResponseWriter, code int, resp entity2.ErrorRespon
 	}
 }
 
-func (o *OrderServer) GetOrders(w http.ResponseWriter, r *http.Request, params entity2.GetOrdersParams) {
-	limit := params.Limit
-	if limit == nil {
-		var valLimit entity2.PaginationLimit = 5
-		if params.Offset != nil {
-			limit = &valLimit
-		} else {
-			count, err := o.orderService.Repo.GetOrderCount(r.Context())
-			if err != nil {
-				sendErrorResponse(w, http.StatusInternalServerError, entity2.ErrorResponse{Reason: "Ошибка получения списка заказов"})
-				return
-			}
-			valLimit = entity2.PaginationLimit(count)
-			limit = &valLimit
-		}
-	}
-
-	offset := params.Offset
-	if offset == nil {
-		var defOffset entity2.PaginationOffset = 0
-		offset = &defOffset
-	}
-
-	orders, err := o.orderService.Repo.GetOrders(r.Context(), *limit, *offset)
-	if err != nil {
-		http.Error(w, "Ошибка получения списка заказов", http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(orders); err != nil {
-		http.Error(w, "Ошибка кодирования ответа", http.StatusBadRequest)
-	}
-}
+//func (o *OrderServer) GetOrders(w http.ResponseWriter, r *http.Request, params entity2.GetOrdersParams) {
+//	limit := params.Limit
+//	if limit == nil {
+//		var valLimit entity2.PaginationLimit = 5
+//		if params.Offset != nil {
+//			limit = &valLimit
+//		} else {
+//			count, err := o.orderService.Repo.GetOrderCount(r.Context())
+//			if err != nil {
+//				sendErrorResponse(w, http.StatusInternalServerError, entity2.ErrorResponse{Reason: "Ошибка получения списка заказов"})
+//				return
+//			}
+//			valLimit = entity2.PaginationLimit(count)
+//			limit = &valLimit
+//		}
+//	}
+//
+//	offset := params.Offset
+//	if offset == nil {
+//		var defOffset entity2.PaginationOffset = 0
+//		offset = &defOffset
+//	}
+//
+//	orders, err := o.orderService.Repo.GetOrders(r.Context(), *limit, *offset)
+//	if err != nil {
+//		http.Error(w, "Ошибка получения списка заказов", http.StatusInternalServerError)
+//		return
+//	}
+//
+//	w.WriteHeader(http.StatusOK)
+//	w.Header().Set("Content-Type", "application/json")
+//	if err := json.NewEncoder(w).Encode(orders); err != nil {
+//		http.Error(w, "Ошибка кодирования ответа", http.StatusBadRequest)
+//	}
+//}
 
 func (o *OrderServer) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	var newOrders []entity2.Order
@@ -134,7 +134,7 @@ func (o *OrderServer) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	orders, err := o.orderService.Repo.CreateOrder(r.Context(), newOrders)
+	orderIds, err := o.orderService.Repo.CreateOrder(r.Context(), newOrders)
 	if err != nil {
 		sendErrorResponse(w, http.StatusInternalServerError, entity2.ErrorResponse{Reason: "Ошибка создания заказа."})
 		return
@@ -142,7 +142,7 @@ func (o *OrderServer) CreateOrder(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(orders); err != nil {
+	if err := json.NewEncoder(w).Encode(orderIds); err != nil {
 		sendErrorResponse(w, http.StatusInternalServerError, entity2.ErrorResponse{Reason: "Ошибка кодирования ответа."})
 	}
 }

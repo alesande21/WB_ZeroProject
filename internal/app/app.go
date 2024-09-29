@@ -119,6 +119,11 @@ func Run() {
 	//r := mux.NewRouter().PathPrefix("/api").Subrouter().StrictSlash(true)
 	r := mux.NewRouter()
 
+	//r.PathPrefix("/").Handler(http.FileServer(http.Dir("./internal/ui/")))
+
+	sc := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
+	r.PathPrefix("/static/").Handler(sc)
+
 	r.Use(middleware.OapiRequestValidator(swagger))
 	http2.HandlerFromMux(tenderServer, r)
 

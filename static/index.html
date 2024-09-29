@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Management</title>
+</head>
+<body>
+<h1>Order Management</h1>
+
+<!-- Форма для получения заказа по ID -->
+<div>
+    <h2>Получить заказ по ID</h2>
+    <input type="text" id="order_uid" placeholder="Введите order_uid">
+    <button onclick="getOrder()">Получить заказ</button>
+    <pre id="orderResult"></pre>
+</div>
+
+<!-- Форма для создания нового заказа -->
+<div>
+    <h2>Создать новый заказ</h2>
+    <input type="text" id="track_number" placeholder="Track Number">
+    <input type="text" id="name" placeholder="Имя">
+    <input type="text" id="phone" placeholder="Телефон">
+    <input type="number" id="amount" placeholder="Сумма оплаты">
+    <input type="text" id="item_name" placeholder="Название товара">
+    <input type="number" id="item_price" placeholder="Цена товара">
+    <button onclick="createOrder()">Создать заказ</button>
+    <pre id="createResult"></pre>
+</div>
+
+<script>
+    async function getOrder() {
+        const orderUid = document.getElementById('order_uid').value;
+        const response = await fetch(`/api/orders/${orderUid}`);
+        const result = await response.json();
+        document.getElementById('orderResult').innerText = JSON.stringify(result, null, 2);
+    }
+
+    async function createOrder() {
+        const orderData = {
+            track_number: document.getElementById('track_number').value,
+            delivery: {
+                name: document.getElementById('name').value,
+                phone: document.getElementById('phone').value,
+            },
+            payment: {
+                amount: document.getElementById('amount').value,
+            },
+            items: [
+                {
+                    name: document.getElementById('item_name').value,
+                    price: document.getElementById('item_price').value,
+                }
+            ]
+        };
+
+        const response = await fetch('/api/orders/new', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(orderData),
+        });
+
+        const result = await response.json();
+        document.getElementById('createResult').innerText = JSON.stringify(result, null, 2);
+    }
+</script>
+</body>
+</html>

@@ -1,9 +1,9 @@
 openapi: '3.0.3'
 info:
-    version: 1.0.1
-    title: Order Management API
-    description: |
-      API для управления доставкой.
+  version: 1.0.0
+  title: Order Management API
+  description: |
+    API для управления доставкой.
 servers:
   - url: http://localhost:8080
     description: Локальный сервер API
@@ -22,6 +22,32 @@ paths:
         "500":
           description: Сервер не готов обрабатывать запросы, если ответ статусом 500 или любой другой, кроме 200.
 
+  /api/orders:
+    get:
+      summary: Получение списка заказов
+      description: |
+        Список заказов.
+        
+        Если фильтры не заданы возвращаются все заказы.
+      operationId: getOrders
+      parameters:
+        - $ref: "#/components/parameters/paginationLimit"
+        - $ref: "#/components/parameters/paginationOffset"
+      responses:
+        "200":
+          description: Успешно получен список заказов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/order'
+        "400":
+          description: Неверный формат запроса или его параметры.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/errorResponse"
   /api/orders/new:
     post:
       summary: Создание нового заказа
@@ -44,9 +70,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/orderId"
+                $ref: "#/components/schemas/order"
         "400":
           description: Ошибка при создании заказа
           content:
@@ -149,10 +173,10 @@ components:
         region: Kraiot
         email: test@gmail.com"
 
-#    transactionId:
-#      type: string
-#      description: Номер транзакции
-#      maxLength: 100
+    #    transactionId:
+    #      type: string
+    #      description: Номер транзакции
+    #      maxLength: 100
     paymentRequestId:
       type: string
       description: Номер транзакции

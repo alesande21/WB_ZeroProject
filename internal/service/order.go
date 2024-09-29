@@ -7,7 +7,7 @@ import (
 )
 
 type OrderRepo interface {
-	CreateOrder(ctx context.Context, newOrders []entity2.Order) ([]entity2.Order, error)
+	CreateOrder(ctx context.Context, newOrders []entity2.Order) ([]entity2.OrderId, error)
 	GetOrders(ctx context.Context, limit entity2.PaginationOffset, offset entity2.PaginationOffset) ([]entity2.Order, error)
 	GetOrderByIdFromDb(ctx context.Context, orderId entity2.OrderId) (*entity2.Order, error)
 	GetOrderByIdFromCache(orderId entity2.OrderId) (*entity2.Order, error)
