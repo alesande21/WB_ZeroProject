@@ -225,6 +225,25 @@ func (r *OrderRepo) GetOrderByIdFromDb(ctx context.Context, orderId entity2.Orde
 	}
 
 	query = `
+		SELECT name, phone, zip, city, address, region, email
+		FROM delivery
+		WHERE order_id = $1
+	`
+
+	row = r.dbRepo.QueryRow(ctx, query, orderId)
+
+	var delivery entity2.Delivery
+
+	err = row.Scan(&delivery.Name, &delivery.Phone, &delivery.Zip, &delivery.City, &delivery.Address, &delivery.Region,
+		&delivery.Email)
+	if err != nil {
+		log.Printf("Доставка по orderId не найдена: %v\n", err)
+		return nil, err
+	}
+
+	order.Delivery = delivery
+
+	query = `
 		SELECT transaction_id, request_id, currency, provider, amount, payment_dt, bank, delivery_cost, 
 		       goods_total, custom_fee
 		FROM payment
@@ -270,6 +289,8 @@ func (r *OrderRepo) GetOrderByIdFromDb(ctx context.Context, orderId entity2.Orde
 	}
 
 	order.Items = items
+
+	fmt.Println(order)
 
 	return &order, nil
 }
@@ -350,6 +371,8 @@ func (r *OrderRepo) ListenForDbChanges(ctx context.Context, updateCache <-chan i
 	defer tickerFullUpdate.Stop()
 	var isUpdating bool
 	var mu sync.Mutex
+	r.UpdateCache(ctx)
+	time.Sleep(time.Second * 2)
 
 	for {
 		select {
