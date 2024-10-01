@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
-	middleware "github.com/oapi-codegen/nethttp-middleware"
 	"log"
 	"net/http"
 	"os"
@@ -121,10 +120,16 @@ func Run() {
 
 	//r.PathPrefix("/").Handler(http.FileServer(http.Dir("./internal/ui/")))
 
-	sc := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
-	r.PathPrefix("/static/").Handler(sc)
+	//sc := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
+	//r.PathPrefix("/static/").Handler(sc)
 
-	r.Use(middleware.OapiRequestValidator(swagger))
+	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./static/index.html")
+	})
+
+	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
+
+	//r.Use(middleware.OapiRequestValidator(swagger))
 	http2.HandlerFromMux(tenderServer, r)
 
 	s := &http.Server{
