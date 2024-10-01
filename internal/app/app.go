@@ -11,14 +11,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
+	middleware "github.com/oapi-codegen/nethttp-middleware"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-
-	middleware "github.com/oapi-codegen/nethttp-middleware"
 )
 
 func InitSchema(repo database2.DBRepository, pathToSchema string) error {
@@ -69,7 +68,8 @@ func Run() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go conn.InterapterConn()
+	// TODO: убрать
+	//go conn.InterapterConn()
 
 	updateCache := make(chan interface{})
 	defer close(updateCache)
