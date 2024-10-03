@@ -6,7 +6,7 @@ import (
 
 func main() {
 
-	app.Run()
+	app.RunProducer()
 
 }
 

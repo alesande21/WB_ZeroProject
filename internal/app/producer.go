@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-func Run2() {
+func RunProducer() {
 
 	//Загрузка конфига
 	log.Println("Загрузка конфига для подключения к кафке...")
@@ -37,10 +37,9 @@ func Run2() {
 
 	defer producer.Close()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// TODO: убрать
+	// TODO: убрать или найти другое применение
+	//ctx, cancel := context.WithCancel(context.Background())
+	//defer cancel()
 
 	log.Println("Загрузка настроек для сервера...")
 	var serverAddress http2.ServerAddress
@@ -91,7 +90,10 @@ func Run2() {
 		log.Printf("Приложение прерывается: %s", sig)
 
 		ctxShutDown, cancelShutdown := context.WithTimeout(context.Background(), 10*time.Second)
-		cancel()
+
+		// TODO: активировать в случает если контекст понадыбится
+		//cancel()
+
 		defer cancelShutdown()
 		err := s.Shutdown(ctxShutDown)
 		if err != nil {

@@ -126,7 +126,7 @@ func sendErrorResponse(w http.ResponseWriter, code int, resp entity2.ErrorRespon
 //	}
 //}
 
-func (o *OrderServer) CreateOrder(w http.ResponseWriter, r *http.Request) {
+func (os *OrderServer) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	var newOrders []entity2.Order
 	if err := json.NewDecoder(r.Body).Decode(&newOrders); err != nil {
 		log.Println("Неверный формат для заказа!")
@@ -134,26 +134,29 @@ func (o *OrderServer) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	orderIds, err := o.orderService.Repo.CreateOrder(r.Context(), newOrders)
+	err := os.orderPlacer.CreateOrder(r.Context(), "orders.event.create", newOrders)
 	if err != nil {
 		sendErrorResponse(w, http.StatusInternalServerError, entity2.ErrorResponse{Reason: "Ошибка создания заказа."})
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusAccepted)
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(orderIds); err != nil {
+
+	// TODO: возможно добавить id ордеров или убрать вовсе
+	msg := "Ордера приняты в обработку."
+	if err := json.NewEncoder(w).Encode(msg); err != nil {
 		sendErrorResponse(w, http.StatusInternalServerError, entity2.ErrorResponse{Reason: "Ошибка кодирования ответа."})
 	}
 }
 
-func (o *OrderServer) GetOrderById(w http.ResponseWriter, r *http.Request, orderUid entity2.OrderId) {
+func (os *OrderServer) GetOrderById(w http.ResponseWriter, r *http.Request, orderUid entity2.OrderId) {
 	if orderUid == "" {
 		sendErrorResponse(w, http.StatusBadRequest, entity2.ErrorResponse{Reason: "Неверный формат запроса или его параметры."})
 		return
 	}
 
-	order, err := o.orderService.GetOrderById(r.Context(), orderUid)
+	order, err := os.orderPlacer.GetOrder(r.Context(), "orders.event.getById", orderUid)
 	if err != nil {
 		sendErrorResponse(w, http.StatusNotFound, entity2.ErrorResponse{Reason: "Заказ не найден."})
 		return
@@ -166,7 +169,7 @@ func (o *OrderServer) GetOrderById(w http.ResponseWriter, r *http.Request, order
 	}
 }
 
-func (o OrderServer) GetApiPing(w http.ResponseWriter, r *http.Request) {
+func (os OrderServer) GetApiPing(w http.ResponseWriter, r *http.Request) {
 	res := "ok"
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(res)
