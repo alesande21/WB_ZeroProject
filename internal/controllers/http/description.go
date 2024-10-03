@@ -2,7 +2,7 @@ package http
 
 import (
 	entity2 "WB_ZeroProject/internal/entity"
-	service2 "WB_ZeroProject/internal/service"
+	kafka2 "WB_ZeroProject/internal/kafka"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -66,14 +66,14 @@ func (a *ServerAddress) UpdateEnvAddress() error {
 }
 
 type OrderServer struct {
-	orderService *service2.OrderService
+	orderPlacer *kafka2.OrderPlacer
 }
 
 var _ ServerInterface = (*OrderServer)(nil)
 
-func NewTenderServer(orderService *service2.OrderService) *OrderServer {
+func NewTenderServer(orderPlacer *kafka2.OrderPlacer) *OrderServer {
 	return &OrderServer{
-		orderService: orderService,
+		orderPlacer: orderPlacer,
 	}
 }
 
