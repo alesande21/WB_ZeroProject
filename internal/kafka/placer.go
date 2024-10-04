@@ -10,12 +10,17 @@ import (
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"log"
+	"sync"
+	"time"
 )
 
 type OrderPlacer struct {
-	producer   *kafka.Producer
-	topic      string
-	deliveryCh chan kafka.Event
+	producer    *kafka.Producer
+	consumer    *kafka.Consumer
+	topic       string
+	deliveryCh  chan kafka.Event
+	responseMap map[string]chan *eventGetResponse
+	sync.Mutex
 }
 
 type event struct {
@@ -34,20 +39,39 @@ type eventGet struct {
 	CorrelationID string          `json:"correlation_id"`
 }
 
-func NewOrderPlacer(conf *config2.ConfigKafka) (*OrderPlacer, error) {
-	configMap := kafka.ConfigMap{
+func NewOrderPlacer(conf *config2.ConfigKafka, groupID string) (*OrderPlacer, error) {
+	configMapProducer := kafka.ConfigMap{
 		"bootstrap.servers": conf.URL,
 		"client.id":         "orderPlacer",
 		"acks":              "all",
 	}
 
-	client, err := kafka.NewProducer(&configMap)
+	clientProducer, err := kafka.NewProducer(&configMapProducer)
 	if err != nil {
 		return nil, fmt.Errorf("kafka.NewProducer %w", err)
 	}
 
+	configMapConsumer := kafka.ConfigMap{
+		"bootstrap.servers":  conf.URL,
+		"group.id":           groupID,
+		"auto.offset.reset":  "earliest",
+		"enable.auto.commit": false,
+	}
+
+	clientConsumer, err := kafka.NewConsumer(&configMapConsumer)
+	if err != nil {
+		clientProducer.Close()
+		return nil, fmt.Errorf("ошибка при создании -> kafka.NewConsumer %w", err)
+	}
+
+	err = clientConsumer.Subscribe(conf.Topic+".event.response*", nil)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при подписке -> client.Subscribe %w", err)
+	}
+
 	return &OrderPlacer{
-		producer:   client,
+		producer:   clientProducer,
+		consumer:   clientConsumer,
 		topic:      conf.Topic,
 		deliveryCh: make(chan kafka.Event, 10000),
 	}, nil
@@ -142,9 +166,117 @@ func (op *OrderPlacer) GetOrder(ctx context.Context, msgType string, orderId ent
 		op.deliveryCh,
 	)
 
-	return nil, nil
+	if err != nil {
+		return nil, fmt.Errorf("сообщение не было отправлено %w", err)
+	}
+
+	return op.awaitResponse(correlationID)
 }
 
-func (op *OrderPlacer) Close() {
+func (op *OrderPlacer) awaitResponse(correlationID string) (*entity2.Order, error) {
+	responseCh := make(chan *eventGetResponse, 1)
+	defer close(responseCh)
+
+	op.Lock()
+	op.responseMap[correlationID] = responseCh
+	op.Unlock()
+
+	select {
+	case eventResponse := <-responseCh:
+		if eventResponse == nil {
+			return nil, fmt.Errorf("ответ по CorrelationID %s пустой", correlationID)
+		}
+
+		if correlationID != eventResponse.CorrelationID {
+			return nil, fmt.Errorf("запрашевыемый сorrelationID и сorrelationID ответа не совпадают %s != %s",
+				correlationID, eventResponse.CorrelationID)
+		}
+
+		if eventResponse.Status != true {
+			return nil, fmt.Errorf("ошибка при поиске CorrelationID eventResponse.Status == false %s", correlationID)
+		}
+
+		return &eventResponse.Order, nil
+
+	case <-time.After(time.Second * 10):
+		op.Lock()
+		delete(op.responseMap, correlationID)
+		op.Unlock()
+		return nil, fmt.Errorf("ответ по CorrelationID %s не получен вовремя", correlationID)
+	}
+}
+
+func (op *OrderPlacer) handleResponse(response *eventGetResponse) {
+	op.Lock()
+	responseCh, ok := op.responseMap[response.CorrelationID]
+	op.Unlock()
+
+	if ok {
+		responseCh <- response
+		close(responseCh)
+
+		op.Lock()
+		delete(op.responseMap, response.CorrelationID)
+		op.Unlock()
+	}
+}
+
+func (op *OrderPlacer) ListenResponse(ctx context.Context) {
+	commit := func(msg *kafka.Message) {
+		if _, err := op.consumer.CommitMessage(msg); err != nil {
+			log.Printf("Коммит не выполнен: %s", err)
+		}
+	}
+
+	run := true
+
+	for run {
+		select {
+		case <-ctx.Done():
+			log.Printf("Обработчик ответов остановлен...")
+			run = false
+			break
+		default:
+			msg, ok := op.consumer.Poll(150).(*kafka.Message)
+			if !ok {
+				continue
+			}
+
+			var evt event
+
+			if err := json.NewDecoder(bytes.NewReader(msg.Value)).Decode(&evt); err != nil {
+				log.Printf("Ошибка при декодировании event: %s", err)
+
+				commit(msg)
+
+				continue
+			}
+
+			//ok = false
+
+			switch evt.Type {
+			case "orders.event.response":
+				var responseEvent eventGetResponse
+				if err := json.Unmarshal(evt.Value, &responseEvent); err != nil {
+					log.Printf("Ошибка при декодировании createEvent: %s", err)
+					commit(msg)
+					continue
+				}
+
+				op.handleResponse(&responseEvent)
+				commit(msg)
+
+			default:
+				log.Printf("Неизвестный тип события: %s", evt.Type)
+				commit(msg)
+			}
+
+		}
+
+	}
+}
+
+func (op *OrderPlacer) Close() error {
 	op.producer.Close()
+	return op.consumer.Close()
 }

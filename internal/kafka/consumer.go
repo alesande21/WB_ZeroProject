@@ -14,38 +14,54 @@ import (
 
 type OrderConsumer struct {
 	Consumer     *kafka.Consumer
+	Producer     *kafka.Producer
 	OrderService *service.OrderService
-	URL          string
 }
 
 type eventGetResponse struct {
-	Type          string        `json:"type"`
-	Order         entity2.Order `json:"order"`
-	CorrelationID string        `json:"correlation_id"`
+	Type          string
+	Order         entity2.Order
+	Status        bool
+	CorrelationID string
 }
 
 func NewOrderConsumer(conf *config2.ConfigKafka, orderSerivce *service.OrderService, groupID string) (*OrderConsumer, error) {
-	configMap := kafka.ConfigMap{
+	configMapConsumer := kafka.ConfigMap{
 		"bootstrap.servers":  conf.URL,
 		"group.id":           groupID,
 		"auto.offset.reset":  "earliest",
 		"enable.auto.commit": false,
 	}
 
-	client, err := kafka.NewConsumer(&configMap)
+	clientConsumer, err := kafka.NewConsumer(&configMapConsumer)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при создании -> kafka.NewConsumer %w", err)
 	}
 
-	err = client.Subscribe(conf.Topic+"*", nil)
+	err = clientConsumer.Subscribe(conf.Topic+".event.request*", nil)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при подписке -> client.Subscribe %w", err)
 	}
 
+	configMapProducer := kafka.ConfigMap{
+		"bootstrap.servers": conf.URL,
+		"client.id":         "orderConsumer",
+		"acks":              "all",
+	}
+
+	clientProducer, err := kafka.NewProducer(&configMapProducer)
+	if err != nil {
+		err := clientConsumer.Close()
+		if err != nil {
+			return nil, fmt.Errorf("ошибка при закрытии -> clientConsumer.Close %w", err)
+		}
+		return nil, fmt.Errorf("ошибка при инициализации -> kafka.NewProducer %w", err)
+	}
+
 	return &OrderConsumer{
-		Consumer:     client,
+		Consumer:     clientConsumer,
+		Producer:     clientProducer,
 		OrderService: orderSerivce,
-		URL:          conf.URL,
 	}, nil
 }
 
@@ -83,7 +99,7 @@ func (oc *OrderConsumer) ListenAndServe(ctx context.Context) {
 			//ok = false
 
 			switch evt.Type {
-			case "orders.event.create":
+			case "orders.event.request.create":
 				var createEvent eventCreate
 				if err := json.Unmarshal(evt.Value, &createEvent); err != nil {
 					log.Printf("Ошибка при декодировании createEvent: %s", err)
@@ -98,7 +114,7 @@ func (oc *OrderConsumer) ListenAndServe(ctx context.Context) {
 					log.Println("Заказы не добавлены в базу данных: ", orderIDs)
 				}
 
-			case "orders.event.getbyID":
+			case "orders.event.request.getbyID":
 
 				var getEvent eventGet
 				if err := json.Unmarshal(evt.Value, &getEvent); err != nil {
@@ -108,50 +124,38 @@ func (oc *OrderConsumer) ListenAndServe(ctx context.Context) {
 				}
 
 				order, err := oc.OrderService.GetOrderById(ctx, getEvent.Value)
-				if err == nil {
-					responseEvent := eventGetResponse{
-						Type:          "orders.event.response",
-						Order:         *order,
-						CorrelationID: getEvent.CorrelationID,
-					}
-
-					var b bytes.Buffer
-					err = json.NewEncoder(&b).Encode(responseEvent)
-					if err != nil {
-						log.Printf("Ошибка при кодировании ответа: %s", err)
-						continue
-					}
-
-					configMap := kafka.ConfigMap{
-						"bootstrap.servers": oc.URL,
-						"client.id":         "orderConsumer",
-						"acks":              "all",
-					}
-
-					client, err := kafka.NewProducer(&configMap)
-					if err != nil {
-						log.Printf("Ошибка при создании kafka.NewProducer: %s", err)
-						continue
-					}
-
-					msgResp := kafka.Message{
-						TopicPartition: kafka.TopicPartition{
-							Topic:     &responseEvent.Type,
-							Partition: kafka.PartitionAny,
-						},
-						Value: b.Bytes(),
-					}
-
-					err = client.Produce(&msgResp, nil)
-
-					if err == nil {
-						log.Printf("Ответ с заказом отправлен: %+v", order)
-					} else {
-						log.Printf("Ошибка при отправке ответа: %s", err)
-					}
-
-				} else {
+				responseEvent := eventGetResponse{
+					Type:          "orders.event.response",
+					Order:         *order,
+					Status:        true,
+					CorrelationID: getEvent.CorrelationID,
+				}
+				if err != nil {
 					log.Printf("Заказ с ID %s не найден: %s", evt.Value, err)
+					responseEvent.Status = false
+				}
+
+				var b bytes.Buffer
+				err = json.NewEncoder(&b).Encode(responseEvent)
+				if err != nil {
+					log.Printf("Ошибка при кодировании ответа: %s", err)
+					continue
+				}
+
+				msgResp := kafka.Message{
+					TopicPartition: kafka.TopicPartition{
+						Topic:     &responseEvent.Type,
+						Partition: kafka.PartitionAny,
+					},
+					Value: b.Bytes(),
+				}
+
+				err = oc.Producer.Produce(&msgResp, nil)
+
+				if err == nil {
+					log.Printf("Ответ с заказом отправлен: %+v", order)
+				} else {
+					log.Printf("Ошибка при отправке ответа: %s", err)
 				}
 				commit(msg)
 			default:
@@ -169,5 +173,6 @@ func (oc *OrderConsumer) ListenAndServe(ctx context.Context) {
 //}
 
 func (oc *OrderConsumer) Close() error {
+	oc.Producer.Close()
 	return oc.Consumer.Close()
 }
