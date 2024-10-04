@@ -115,10 +115,10 @@ type ConfigKafka struct {
 }
 
 func GetConfigProducer() (*ConfigKafka, error) {
-	newConf := &ConfigKafka{}
+	var newConf ConfigKafka
 	if err := cleanenv.ReadEnv(&newConf); err != nil {
 		return nil, err
 	}
 
-	return newConf, nil
+	return &newConf, nil
 }

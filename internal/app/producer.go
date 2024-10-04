@@ -28,7 +28,7 @@ func RunProducer() {
 	}
 
 	log.Println("Подключение к кафке...")
-	producer, err := kafka2.NewOrderPlacer(config)
+	producer, err := kafka2.NewOrderPlacer(config, "order-placer")
 	if err != nil {
 		log.Printf("Проблема с подключением к кафке: %s", err.Error())
 		return
@@ -38,8 +38,11 @@ func RunProducer() {
 	defer producer.Close()
 
 	// TODO: убрать или найти другое применение
-	//ctx, cancel := context.WithCancel(context.Background())
-	//defer cancel()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	log.Println("Активация оброботчика ответов...")
+	go producer.ListenResponse(ctx)
 
 	log.Println("Загрузка настроек для сервера...")
 	var serverAddress http2.ServerAddress

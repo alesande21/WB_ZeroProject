@@ -134,7 +134,7 @@ func (os *OrderServer) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := os.orderPlacer.CreateOrder(r.Context(), "orders.event.create", newOrders)
+	err := os.orderPlacer.CreateOrder(r.Context(), "orders.event.request.create", newOrders)
 	if err != nil {
 		sendErrorResponse(w, http.StatusInternalServerError, entity2.ErrorResponse{Reason: "Ошибка создания заказа."})
 		return
@@ -156,7 +156,7 @@ func (os *OrderServer) GetOrderById(w http.ResponseWriter, r *http.Request, orde
 		return
 	}
 
-	order, err := os.orderPlacer.GetOrder(r.Context(), "orders.event.getById", orderUid)
+	order, err := os.orderPlacer.GetOrder(r.Context(), "orders.event.request.getById", orderUid)
 	if err != nil {
 		sendErrorResponse(w, http.StatusNotFound, entity2.ErrorResponse{Reason: "Заказ не найден."})
 		return

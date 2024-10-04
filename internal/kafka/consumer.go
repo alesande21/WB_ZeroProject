@@ -114,7 +114,7 @@ func (oc *OrderConsumer) ListenAndServe(ctx context.Context) {
 					log.Println("Заказы не добавлены в базу данных: ", orderIDs)
 				}
 
-			case "orders.event.request.getbyID":
+			case "orders.event.request.getByID":
 
 				var getEvent eventGet
 				if err := json.Unmarshal(evt.Value, &getEvent); err != nil {
@@ -126,13 +126,14 @@ func (oc *OrderConsumer) ListenAndServe(ctx context.Context) {
 				order, err := oc.OrderService.GetOrderById(ctx, getEvent.Value)
 				responseEvent := eventGetResponse{
 					Type:          "orders.event.response",
-					Order:         *order,
 					Status:        true,
 					CorrelationID: getEvent.CorrelationID,
 				}
 				if err != nil {
 					log.Printf("Заказ с ID %s не найден: %s", evt.Value, err)
 					responseEvent.Status = false
+				} else {
+					responseEvent.Order = *order
 				}
 
 				var b bytes.Buffer

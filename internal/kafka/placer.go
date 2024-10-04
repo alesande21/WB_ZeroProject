@@ -70,10 +70,11 @@ func NewOrderPlacer(conf *config2.ConfigKafka, groupID string) (*OrderPlacer, er
 	}
 
 	return &OrderPlacer{
-		producer:   clientProducer,
-		consumer:   clientConsumer,
-		topic:      conf.Topic,
-		deliveryCh: make(chan kafka.Event, 10000),
+		producer:    clientProducer,
+		consumer:    clientConsumer,
+		topic:       conf.Topic,
+		deliveryCh:  make(chan kafka.Event, 10000),
+		responseMap: make(map[string]chan *eventGetResponse),
 	}, nil
 }
 
