@@ -18,15 +18,20 @@ type OrderPlacer struct {
 	deliveryCh chan kafka.Event
 }
 
+type event struct {
+	Type  string          `json:"type"`
+	Value json.RawMessage `json:"value"`
+}
+
 type eventCreate struct {
-	Type  string
-	Value []entity2.Order
+	Type  string          `json:"type"`
+	Value []entity2.Order `json:"value"`
 }
 
 type eventGet struct {
-	Type          string
-	Value         entity2.OrderId
-	CorrelationID string
+	Type          string          `json:"type"`
+	Value         entity2.OrderId `json:"value"`
+	CorrelationID string          `json:"correlation_id"`
 }
 
 func NewOrderPlacer(conf *config2.ConfigKafka) (*OrderPlacer, error) {
@@ -124,7 +129,7 @@ func (op *OrderPlacer) GetOrder(ctx context.Context, msgType string, orderId ent
 	err = json.NewEncoder(&b).Encode(evt)
 
 	if err != nil {
-		return nil, fmt.Errorf("ошибка кодироования сообщения event: %w", err)
+		return nil, fmt.Errorf("ошибка кодироования сообщения event -> NewEncoder.Encode: %w", err)
 	}
 
 	err = op.producer.Produce(&kafka.Message{
