@@ -64,7 +64,8 @@ func NewOrderPlacer(conf *config2.ConfigKafka, groupID string) (*OrderPlacer, er
 		return nil, fmt.Errorf("ошибка при создании -> kafka.NewConsumer %w", err)
 	}
 
-	err = clientConsumer.Subscribe(conf.Topic+".event.response*", nil)
+	log.Println(conf.Topic)
+	err = clientConsumer.Subscribe("orders.event.response", nil)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при подписке -> client.Subscribe %w", err)
 	}
@@ -84,9 +85,11 @@ func (op *OrderPlacer) PlaceOrder(orderType string, size int) error {
 		payload = []byte(format)
 	)
 
+	tipicReq := op.topic + ".request"
+
 	err := op.producer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{
-			Topic:     &op.topic,
+			Topic:     &tipicReq,
 			Partition: kafka.PartitionAny,
 		},
 		Value: payload,
@@ -119,9 +122,11 @@ func (op *OrderPlacer) CreateOrder(ctx context.Context, msgType string, orders [
 		return fmt.Errorf("ошибка кодироования сообщения event: %w", err)
 	}
 
+	topicReq := op.topic + ".request"
+
 	err = op.producer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{
-			Topic:     &op.topic,
+			Topic:     &topicReq,
 			Partition: kafka.PartitionAny,
 		},
 		Value: b.Bytes(),
@@ -203,7 +208,7 @@ func (op *OrderPlacer) awaitResponse(correlationID string) (*entity2.Order, erro
 		op.Lock()
 		delete(op.responseMap, correlationID)
 		op.Unlock()
-		return nil, fmt.Errorf("ответ по CorrelationID %s не получен вовремя", correlationID)
+		return nil, fmt.Errorf("awaitResponse: ответ по CorrelationID %s не получен вовремя", correlationID)
 	}
 }
 

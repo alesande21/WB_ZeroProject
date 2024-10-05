@@ -394,7 +394,7 @@ func (r *OrderRepo) ListenForDbChanges(ctx context.Context, updateCache <-chan i
 			mu.Unlock()
 		case <-tickerCacheCheck.C:
 			mu.Lock()
-			log.Println("Проверка состояния кеша...")
+			//log.Println("Проверка состояния кеша...")
 			if !isUpdating {
 				isUpdating = true
 				mu.Unlock()

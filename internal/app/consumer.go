@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 func RunConsumer() {
@@ -91,6 +92,7 @@ func RunConsumer() {
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 	shutDownChan := make(chan error, 1)
 
+	// TODO: некорректно завершается найти причину
 	for {
 
 		select {
@@ -99,6 +101,7 @@ func RunConsumer() {
 
 			//ctxShutDown, cancelShutdown := context.WithTimeout(context.Background(), 10*time.Second)
 			cancel()
+			time.Sleep(10 * time.Second)
 
 			//defer cancelShutdown()
 			//err := s.Shutdown(ctxShutDown)

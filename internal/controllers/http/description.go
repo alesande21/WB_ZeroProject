@@ -156,9 +156,10 @@ func (os *OrderServer) GetOrderById(w http.ResponseWriter, r *http.Request, orde
 		return
 	}
 
-	order, err := os.orderPlacer.GetOrder(r.Context(), "orders.event.request.getById", orderUid)
+	order, err := os.orderPlacer.GetOrder(r.Context(), "orders.event.request.getByID", orderUid)
 	if err != nil {
 		sendErrorResponse(w, http.StatusNotFound, entity2.ErrorResponse{Reason: "Заказ не найден."})
+		log.Printf("orderPlacer.GetOrder -> %s", err.Error())
 		return
 	}
 

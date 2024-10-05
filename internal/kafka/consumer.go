@@ -15,6 +15,7 @@ import (
 type OrderConsumer struct {
 	Consumer     *kafka.Consumer
 	Producer     *kafka.Producer
+	Topic        string
 	OrderService *service.OrderService
 }
 
@@ -38,7 +39,8 @@ func NewOrderConsumer(conf *config2.ConfigKafka, orderSerivce *service.OrderServ
 		return nil, fmt.Errorf("ошибка при создании -> kafka.NewConsumer %w", err)
 	}
 
-	err = clientConsumer.Subscribe(conf.Topic+".event.request*", nil)
+	log.Println(conf.Topic)
+	err = clientConsumer.Subscribe("orders.event.request", nil)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при подписке -> client.Subscribe %w", err)
 	}
@@ -61,6 +63,7 @@ func NewOrderConsumer(conf *config2.ConfigKafka, orderSerivce *service.OrderServ
 	return &OrderConsumer{
 		Consumer:     clientConsumer,
 		Producer:     clientProducer,
+		Topic:        conf.Topic,
 		OrderService: orderSerivce,
 	}, nil
 }
@@ -101,7 +104,7 @@ func (oc *OrderConsumer) ListenAndServe(ctx context.Context) {
 			switch evt.Type {
 			case "orders.event.request.create":
 				var createEvent eventCreate
-				if err := json.Unmarshal(evt.Value, &createEvent); err != nil {
+				if err := json.Unmarshal(msg.Value, &createEvent); err != nil {
 					log.Printf("Ошибка при декодировании createEvent: %s", err)
 					commit(msg)
 					continue
@@ -117,7 +120,7 @@ func (oc *OrderConsumer) ListenAndServe(ctx context.Context) {
 			case "orders.event.request.getByID":
 
 				var getEvent eventGet
-				if err := json.Unmarshal(evt.Value, &getEvent); err != nil {
+				if err := json.Unmarshal(msg.Value, &getEvent); err != nil {
 					log.Printf("Ошибка при декодировании getEvent: %s", err)
 					commit(msg)
 					continue
@@ -145,7 +148,7 @@ func (oc *OrderConsumer) ListenAndServe(ctx context.Context) {
 
 				msgResp := kafka.Message{
 					TopicPartition: kafka.TopicPartition{
-						Topic:     &responseEvent.Type,
+						Topic:     &oc.Topic,
 						Partition: kafka.PartitionAny,
 					},
 					Value: b.Bytes(),
@@ -165,7 +168,6 @@ func (oc *OrderConsumer) ListenAndServe(ctx context.Context) {
 			}
 
 		}
-
 	}
 }
 
