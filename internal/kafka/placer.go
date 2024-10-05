@@ -122,11 +122,9 @@ func (op *OrderPlacer) CreateOrder(ctx context.Context, msgType string, orders [
 		return fmt.Errorf("ошибка кодироования сообщения event: %w", err)
 	}
 
-	topicReq := op.topic + ".request"
-
 	err = op.producer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{
-			Topic:     &topicReq,
+			Topic:     &op.topic,
 			Partition: kafka.PartitionAny,
 		},
 		Value: b.Bytes(),
