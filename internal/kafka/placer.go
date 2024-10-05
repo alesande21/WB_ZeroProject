@@ -48,7 +48,7 @@ type ConfigKafka struct {
 
 func GetConfigProducer() (*ConfigKafka, error) {
 	var newConf ConfigKafka
-	if err := cleanenv.ReadEnv(&newConf); err == nil {
+	if err := cleanenv.ReadEnv(&newConf); err != nil {
 		return nil, fmt.Errorf("-> cleanenv.ReadEnv: ошибка загрузки env параметров конфига для kafka: %w", err)
 	}
 

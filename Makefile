@@ -14,9 +14,9 @@ genServer:
 	oapi-codegen --config=configs/oapi/configServer.yaml api/ordersAPI.yml
 
 build:
-	#go build ./cmd/app/
+	#go build ./cmd/producer/
 	go build -o ./bin/app ./cmd/app
-#	go build ./src/cmd/app/
+#	go build ./src/cmd/producer/
 	#go build -o build/server ./server
 
 run:

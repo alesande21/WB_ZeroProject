@@ -82,7 +82,7 @@ func RunConsumer() {
 	if err != nil {
 		log.Printf("Проблема с подключением к кафке: %s", err.Error())
 		return
-		//return nil, fmt.Errorf("internal.app.NewOrderConsumer %w", err)
+		//return nil, fmt.Errorf("internal.producer.NewOrderConsumer %w", err)
 	}
 	defer consumer.Close()
 

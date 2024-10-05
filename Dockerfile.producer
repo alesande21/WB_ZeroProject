@@ -1,15 +1,3 @@
-#FROM golang:1.23.1-alpine3.20 AS build
-#COPY . /home/src
-#WORKDIR /home/src
-#RUN apk add make && make build
-#
-#FROM alpine:3.20
-#EXPOSE 8080
-#WORKDIR /producer
-#COPY --from=build /home/src/bin/producer /producer/avito_service
-#
-#ENTRYPOINT [ "/bin/sh", "-c", "/producer/avito_service" ]
-
 # Используем официальный образ Go в качестве базового образа для сборки
 FROM golang:1.22 AS builder
 LABEL authors="alesande"
@@ -25,7 +13,7 @@ RUN go mod download
 COPY . .
 
 # Сборка приложения
-RUN CGO_ENABLED=0 GOOS=linux go build -o avito_service ./cmd/producer
+RUN CGO_ENABLED=0 GOOS=linux go build -o wb_service ./cmd/producer
 
 # Финальный образ
 FROM alpine:latest
@@ -37,20 +25,13 @@ RUN apk --no-cache add ca-certificates postgresql-client
 WORKDIR /app
 
 # Копируем скомпилированный бинарник из стадии сборки
-COPY --from=builder /app/avito_service /app/avito_service
+COPY --from=builder /app/wb_service /app/wb_service
 
 # Делаем бинарный файл исполняемым
-RUN chmod +x /producer/avito_service
+RUN chmod +x /app/wb_service
 
 # Настройка порта, который будет использоваться
 EXPOSE 8080
 
 # Определяем точку входа
-ENTRYPOINT ["/app/avito_service"]
-
-
-
-
-
-
-
+ENTRYPOINT ["/app/wb_service"]
