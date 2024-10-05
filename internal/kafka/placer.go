@@ -1,7 +1,6 @@
 package kafka
 
 import (
-	config2 "WB_ZeroProject/internal/config"
 	entity2 "WB_ZeroProject/internal/entity"
 	"WB_ZeroProject/internal/utils"
 	"bytes"
@@ -9,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"github.com/ilyakaznacheev/cleanenv"
 	"log"
 	"sync"
 	"time"
@@ -39,7 +39,23 @@ type eventGet struct {
 	CorrelationID string          `json:"correlation_id"`
 }
 
-func NewOrderPlacer(conf *config2.ConfigKafka, groupID string) (*OrderPlacer, error) {
+type ConfigKafka struct {
+	URL   string `env-required:"true" json:"url" yaml:"url" env:"KAFKA_CONN"`
+	Host  string `env-required:"true" json:"host" yaml:"host" env:"KAFKA_HOST"`
+	Port  int    `env-required:"true" json:"port" yaml:"port" env:"KAFKA_PORT"`
+	Topic string `env-required:"true" json:"topic" yaml:"topic" env:"KAFKA_TOPIC"`
+}
+
+func GetConfigProducer() (*ConfigKafka, error) {
+	var newConf ConfigKafka
+	if err := cleanenv.ReadEnv(&newConf); err == nil {
+		return nil, fmt.Errorf("-> cleanenv.ReadEnv: ошибка загрузки env параметров конфига для kafka: %w", err)
+	}
+
+	return &newConf, nil
+}
+
+func NewOrderPlacer(conf *ConfigKafka, groupID string) (*OrderPlacer, error) {
 	configMapProducer := kafka.ConfigMap{
 		"bootstrap.servers": conf.URL,
 		"client.id":         "orderPlacer",
@@ -48,7 +64,7 @@ func NewOrderPlacer(conf *config2.ConfigKafka, groupID string) (*OrderPlacer, er
 
 	clientProducer, err := kafka.NewProducer(&configMapProducer)
 	if err != nil {
-		return nil, fmt.Errorf("kafka.NewProducer %w", err)
+		return nil, fmt.Errorf("-> kafka.NewProducer: ошибка при инициализации нового Producer: %w", err)
 	}
 
 	configMapConsumer := kafka.ConfigMap{
@@ -61,13 +77,12 @@ func NewOrderPlacer(conf *config2.ConfigKafka, groupID string) (*OrderPlacer, er
 	clientConsumer, err := kafka.NewConsumer(&configMapConsumer)
 	if err != nil {
 		clientProducer.Close()
-		return nil, fmt.Errorf("ошибка при создании -> kafka.NewConsumer %w", err)
+		return nil, fmt.Errorf("-> kafka.NewConsumer: ошибка при инициализации нового Consumer: %w", err)
 	}
 
-	log.Println(conf.Topic)
 	err = clientConsumer.Subscribe("orders.event.response", nil)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка при подписке -> client.Subscribe %w", err)
+		return nil, fmt.Errorf("-> clientConsumer.Subscribe: ошибка при подписке на orders.event.response: %w", err)
 	}
 
 	return &OrderPlacer{

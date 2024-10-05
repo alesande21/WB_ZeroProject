@@ -202,6 +202,10 @@ func (r *OrderRepo) CreateOrder(ctx context.Context, newOrders []entity2.Order) 
 		return nil, err
 	}
 
+	for _, order := range newOrders {
+		r.cache.Set(order.OrderUid, order)
+	}
+
 	return orderIds, nil
 }
 

@@ -1,7 +1,6 @@
 package kafka
 
 import (
-	config2 "WB_ZeroProject/internal/config"
 	entity2 "WB_ZeroProject/internal/entity"
 	"WB_ZeroProject/internal/service"
 	"bytes"
@@ -26,7 +25,7 @@ type eventGetResponse struct {
 	CorrelationID string        `json:"correlation_id"`
 }
 
-func NewOrderConsumer(conf *config2.ConfigKafka, orderSerivce *service.OrderService, groupID string) (*OrderConsumer, error) {
+func NewOrderConsumer(conf *ConfigKafka, orderSerivce *service.OrderService, groupID string) (*OrderConsumer, error) {
 	configMapConsumer := kafka.ConfigMap{
 		"bootstrap.servers":  conf.URL,
 		"group.id":           groupID,
@@ -126,7 +125,6 @@ func (oc *OrderConsumer) ListenAndServe(ctx context.Context) {
 					continue
 				}
 
-				log.Println(getEvent.CorrelationID)
 				order, err := oc.OrderService.GetOrderById(ctx, getEvent.Value)
 				responseEvent := eventGetResponse{
 					Type:          "orders.event.response",

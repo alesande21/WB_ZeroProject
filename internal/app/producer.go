@@ -2,13 +2,13 @@ package app
 
 import (
 	"WB_ZeroProject/internal/colorAttribute"
-	config2 "WB_ZeroProject/internal/config"
 	http2 "WB_ZeroProject/internal/controllers/http"
 	kafka2 "WB_ZeroProject/internal/kafka"
 	"context"
 	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
+	log2 "github.com/sirupsen/logrus"
 	"log"
 	"net/http"
 	"os"
@@ -17,47 +17,49 @@ import (
 	"time"
 )
 
-func RunProducer() {
+func RunProducer() error {
 
-	//Загрузка конфига
-	log.Println("Загрузка конфига для подключения к кафке...")
-	config, err := config2.GetConfigProducer()
+	// Загрузка конфига для кафки
+	log2.Info("Загрузка конфига для подключения к кафке...")
+	config, err := kafka2.GetConfigProducer()
 	if err != nil {
-		log.Printf("Проблема с загрузкой конфига: %s", err.Error())
-		return
+		return fmt.Errorf("-> config2.GetConfigProducer%w", err)
 	}
 
-	log.Println("Подключение к кафке...")
+	log2.Info("Подключение к кафке...")
 	producer, err := kafka2.NewOrderPlacer(config, "order-placer")
 	if err != nil {
-		log.Printf("Проблема с подключением к кафке: %s", err.Error())
-		return
-		//return nil, fmt.Errorf("internal.app.NewOrderPlacer %w", err)
+		return fmt.Errorf("-> kafka2.NewOrderPlacer%w", err)
 	}
 
-	defer producer.Close()
+	defer func(producer *kafka2.OrderPlacer) {
+		err := producer.Close()
+		if err != nil {
+
+		}
+	}(producer)
 
 	// TODO: убрать или найти другое применение
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	log.Println("Активация оброботчика ответов...")
+	log2.Info("Активация оброботчика ответов...")
 	go producer.ListenResponse(ctx)
 
-	log.Println("Загрузка настроек для сервера...")
+	log2.Info("Загрузка настроек для сервера...")
 	var serverAddress http2.ServerAddress
 	//err = serverAddress.LoadConfigAddress("src/internal/controllers/http/config.yml")
 	err = serverAddress.UpdateEnvAddress()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "настройки адреса сервера не загрузились\n: %s", err)
-		return
+		return nil
 	}
 
 	log.Println("Инициализация и старт сервера...")
 	swagger, err := http2.GetSwagger()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ошибка загрузки сваггера\n: %s", err)
-		return
+		return nil
 	}
 	swagger.Servers = nil
 
@@ -109,4 +111,6 @@ func RunProducer() {
 			log.Fatalf("Ошибка при запуске сервера: %s", err)
 		}
 	}
+
+	return nil
 }

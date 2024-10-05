@@ -71,7 +71,7 @@ func RunConsumer() {
 	go orderRepo.ListenForDbChanges(ctx, updateCache)
 
 	log.Println("Загрузка конфига для подключения к кафке...")
-	configKafka, err := config2.GetConfigProducer()
+	configKafka, err := kafka2.GetConfigProducer()
 	if err != nil {
 		log.Printf("Проблема с загрузкой конфига: %s", err.Error())
 		return

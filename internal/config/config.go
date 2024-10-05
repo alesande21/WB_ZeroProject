@@ -100,25 +100,9 @@ func (c *Config) loadConfigParam(filePath string) error {
 func (c *Config) loadEnvParam() error {
 	var newConf database.DBConfig
 	if err := cleanenv.ReadEnv(&newConf); err != nil {
-		return err
+		return fmt.Errorf("-> cleanenv.ReadEnv: ошибка загрузки env параметров: %w", err)
 	}
 	c.Connection = &newConf
 	c.Connection.Driver = "postgres"
 	return nil
-}
-
-type ConfigKafka struct {
-	URL   string `env-required:"true" json:"url" yaml:"url" env:"KAFKA_CONN"`
-	Host  string `env-required:"true" json:"host" yaml:"host" env:"KAFKA_HOST"`
-	Port  int    `env-required:"true" json:"port" yaml:"port" env:"KAFKA_PORT"`
-	Topic string `env-required:"true" json:"topic" yaml:"topic" env:"KAFKA_TOPIC"`
-}
-
-func GetConfigProducer() (*ConfigKafka, error) {
-	var newConf ConfigKafka
-	if err := cleanenv.ReadEnv(&newConf); err != nil {
-		return nil, err
-	}
-
-	return &newConf, nil
 }
