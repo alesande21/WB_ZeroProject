@@ -20,10 +20,10 @@ type OrderConsumer struct {
 }
 
 type eventGetResponse struct {
-	Type          string
-	Order         entity2.Order
-	Status        bool
-	CorrelationID string
+	Type          string        `json:"type"`
+	Order         entity2.Order `json:"order"`
+	Status        bool          `json:"status"`
+	CorrelationID string        `json:"correlation_id"`
 }
 
 func NewOrderConsumer(conf *config2.ConfigKafka, orderSerivce *service.OrderService, groupID string) (*OrderConsumer, error) {
@@ -126,6 +126,7 @@ func (oc *OrderConsumer) ListenAndServe(ctx context.Context) {
 					continue
 				}
 
+				log.Println(getEvent.CorrelationID)
 				order, err := oc.OrderService.GetOrderById(ctx, getEvent.Value)
 				responseEvent := eventGetResponse{
 					Type:          "orders.event.response",
@@ -157,7 +158,7 @@ func (oc *OrderConsumer) ListenAndServe(ctx context.Context) {
 				err = oc.Producer.Produce(&msgResp, nil)
 
 				if err == nil {
-					log.Printf("Ответ с заказом отправлен: %+v", order)
+					log.Printf("Ответ с заказом %s отправлен.", getEvent.Value)
 				} else {
 					log.Printf("Ошибка при отправке ответа: %s", err)
 				}

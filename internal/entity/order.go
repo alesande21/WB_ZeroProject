@@ -17,7 +17,7 @@ type Delivery struct {
 	City DeliveryCity `json:"city"`
 
 	// Email Электронный адрес адресата доставки
-	Email DeliveryEmail `json:"email"`
+	Email DeliveryEmail `json:"email,omitempty"`
 
 	// Name Полное навзание доставки
 	Name DeliveryName `json:"name"`

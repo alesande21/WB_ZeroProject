@@ -212,21 +212,6 @@ func (op *OrderPlacer) awaitResponse(correlationID string) (*entity2.Order, erro
 	}
 }
 
-func (op *OrderPlacer) handleResponse(response *eventGetResponse) {
-	op.Lock()
-	responseCh, ok := op.responseMap[response.CorrelationID]
-	op.Unlock()
-
-	if ok {
-		responseCh <- response
-		close(responseCh)
-
-		op.Lock()
-		delete(op.responseMap, response.CorrelationID)
-		op.Unlock()
-	}
-}
-
 func (op *OrderPlacer) ListenResponse(ctx context.Context) {
 	commit := func(msg *kafka.Message) {
 		if _, err := op.consumer.CommitMessage(msg); err != nil {
@@ -263,8 +248,8 @@ func (op *OrderPlacer) ListenResponse(ctx context.Context) {
 			switch evt.Type {
 			case "orders.event.response":
 				var responseEvent eventGetResponse
-				if err := json.Unmarshal(evt.Value, &responseEvent); err != nil {
-					log.Printf("Ошибка при декодировании createEvent: %s", err)
+				if err := json.NewDecoder(bytes.NewReader(msg.Value)).Decode(&responseEvent); err != nil {
+					log.Printf("Ошибка при декодировании responseEvent: %s", err)
 					commit(msg)
 					continue
 				}
@@ -279,6 +264,22 @@ func (op *OrderPlacer) ListenResponse(ctx context.Context) {
 
 		}
 
+	}
+}
+
+func (op *OrderPlacer) handleResponse(response *eventGetResponse) {
+	log.Println("handleResponse", op.responseMap, response.CorrelationID)
+	op.Lock()
+	responseCh, ok := op.responseMap[response.CorrelationID]
+	op.Unlock()
+
+	if ok {
+		log.Println("handleResponse", len(op.responseMap))
+		responseCh <- response
+		time.Sleep(2 * time.Second)
+		op.Lock()
+		delete(op.responseMap, response.CorrelationID)
+		op.Unlock()
 	}
 }
 
