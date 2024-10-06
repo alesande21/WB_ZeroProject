@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+#  db:
+#    image: postgres:latest
+#    environment:
+#      POSTGRES_PASSWORD: 1
+#      POSTGRES_USER: postgres
+#      POSTGRES_DB: postgres
+#    ports:
+#      - "5432:5432"
+#    volumes:
+#      - postgres_data:/var/lib/postgresql/data
+#      - ./migrations/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+#    command: ["postgres"]
+  consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile.consumer
+    ports:
+      - "8082:8080"
+    environment:
+      KAFKA_CONN: localhost:9092
+      KAFKA_HOST: 127.0.0.1
+      KAFKA_PORT: 9092
+      KAFKA_TOPIC: orders.event.response
+      POSTGRES_CONN: "host=db port=5432 user=postgres password=1 dbname=postgres sslmode=disable"
+      POSTGRES_DATABASE: postgres
+      POSTGRES_HOST: db
+      POSTGRES_PASSWORD: 1
+      POSTGRES_PORT: 5432
+      POSTGRES_USERNAME: postgres
+      SERVER_ADDRESS: 0.0.0.0:8080
+#    depends_on:
+#      - db
+    command: sh -c "sleep 10 && ./wb_service -ip 0.0.0.0 -port 8080"
+
+volumes:
+  postgres_data:

@@ -13,7 +13,7 @@ RUN go mod download
 COPY . .
 
 # Сборка приложения
-RUN CGO_ENABLED=0 GOOS=linux go build -o wb_service ./cmd/producer
+RUN CGO_ENABLED=1 GOOS=linux go build -o wb_service ./cmd/producer && ls && ls -la /app/
 
 # Финальный образ
 FROM alpine:latest
@@ -34,4 +34,5 @@ RUN chmod +x /app/wb_service
 EXPOSE 8080
 
 # Определяем точку входа
-ENTRYPOINT ["/app/wb_service"]
+#ENTRYPOINT ["/app/wb_service"]
+ENTRYPOINT ["/bin/sh"]
