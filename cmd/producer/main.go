@@ -9,7 +9,7 @@ func main() {
 
 	err := app.RunProducer()
 	if err != nil {
-		logrus.Errorf("producer.RunProducer%s", err.Error())
+		logrus.Errorf("app.RunProducer%s", err.Error())
 	}
 
 }

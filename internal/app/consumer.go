@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	log2 "github.com/sirupsen/logrus"
 	"log"
 	"net/http"
 	"os"
@@ -17,13 +18,17 @@ import (
 	"time"
 )
 
-func RunConsumer() {
+func RunConsumer() error {
+
+	// Настройка логера
+	SetLevel("debug", "console")
+	log2.Info("Настройка логера...")
+
 	//Загрузка конфига
-	log.Println("Загрузка конфига...")
+	log.Println("Загрузка конфига для базы данных...")
 	config, err := config2.GetDefaultConfig()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Проблема с загрузкой конфига\n: %s", err)
-		return
+		return fmt.Errorf("-> config2.GetDefaultConfig%w", err)
 	}
 
 	// Инициализация базы данных
@@ -31,13 +36,12 @@ func RunConsumer() {
 	var conn *database2.DBConnection
 	conn, err = database2.Open(config.GetDBsConfig())
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "проблемы с драйвером подключения на этапе открытия\n: %s", err)
-		return
+		return fmt.Errorf("-> database2.Open%w", err)
 	}
 
 	defer func() {
 		if err := conn.Close(); err != nil {
-			log.Printf("Ошибка при закрытии соединения с базой данных: %s", err)
+			log2.Infof("RunConsumer-> conn.Close:%s", err)
 		}
 	}()
 
@@ -49,20 +53,20 @@ func RunConsumer() {
 
 	updateCache := make(chan interface{})
 	defer close(updateCache)
+
 	// Проверка подключения
 	go conn.CheckConn(ctx, config.GetDBsConfig(), updateCache)
 
 	// Инициализация репозитория
-	log.Println("Инициализация репозитория...")
+	log2.Info("Инициализация репозитория...")
 	var postgresRep database2.DBRepository
 	postgresRep, err = database2.CreatePostgresRepository(conn.GetConn)
 	if err != nil {
-		log.Printf("проблемы с инициализацией PostgresRepository: %s\n", err)
-		return
+		return fmt.Errorf("-> database2.CreatePostgresRepository%w", err)
 	}
 
 	// Инициализация сервиса
-	log.Println("Инициализация сервиса...")
+	log2.Info("Инициализация сервиса...")
 	cache := database2.NewCache()
 	orderRepo := repository2.NewOrderRepo(postgresRep, cache)
 	orderService := service2.NewOrderService(orderRepo)
@@ -70,21 +74,23 @@ func RunConsumer() {
 	// Обновление кеша
 	go orderRepo.ListenForDbChanges(ctx, updateCache)
 
-	log.Println("Загрузка конфига для подключения к кафке...")
+	log2.Info("Загрузка конфига для подключения к кафке...")
 	configKafka, err := kafka2.GetConfigProducer()
 	if err != nil {
-		log.Printf("Проблема с загрузкой конфига: %s", err.Error())
-		return
+		return fmt.Errorf("-> kafka2.GetConfigProducer%w", err)
 	}
 
-	log.Println("Подключение к кафке...")
+	log2.Info("Подключение к кафке...")
 	consumer, err := kafka2.NewOrderConsumer(configKafka, orderService, "order-service")
 	if err != nil {
-		log.Printf("Проблема с подключением к кафке: %s", err.Error())
-		return
-		//return nil, fmt.Errorf("internal.producer.NewOrderConsumer %w", err)
+		return fmt.Errorf("->  kafka2.NewOrderConsumer%w", err)
 	}
-	defer consumer.Close()
+	defer func(consumer *kafka2.OrderConsumer) {
+		err := consumer.Close()
+		if err != nil {
+			log2.Errorf("RunConsumer-> consumer.Close: ошибка при закрытии Consumer: %s", err.Error())
+		}
+	}(consumer)
 
 	go consumer.ListenAndServe(ctx)
 

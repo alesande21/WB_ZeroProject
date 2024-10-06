@@ -18,7 +18,7 @@ import (
 
 func RunProducer() error {
 
-	// Загрузка конфига для кафки
+	// Настройка логера
 	SetLevel("debug", "console")
 	log2.Info("Настройка логера...")
 

@@ -1,9 +1,15 @@
 package main
 
-import "WB_ZeroProject/internal/app"
+import (
+	"WB_ZeroProject/internal/app"
+	"github.com/sirupsen/logrus"
+)
 
 func main() {
 
-	app.RunConsumer()
+	err := app.RunConsumer()
+	if err != nil {
+		logrus.Errorf("app.RunConsumer%s", err.Error())
+	}
 
 }

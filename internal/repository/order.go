@@ -7,6 +7,7 @@ import (
 	"fmt"
 	_ "github.com/lib/pq"
 	_ "github.com/patrickmn/go-cache"
+	log2 "github.com/sirupsen/logrus"
 	"log"
 	"sync"
 	"time"
@@ -305,7 +306,7 @@ func (r *OrderRepo) GetOrderCount(ctx context.Context) (int, error) {
 
 	err := r.dbRepo.QueryRow(ctx, query).Scan(&count)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("-> r.dbRepo.QueryRow.Scan(): ошибка при получении количества заказов из таблицы orders: %w", err)
 	}
 
 	return count, nil
@@ -381,10 +382,11 @@ func (r *OrderRepo) ListenForDbChanges(ctx context.Context, updateCache <-chan i
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("Прекращается обновление кеша...")
+			log2.Info("Прекращается обновление кеша...")
 			return
+
 		case <-updateCache:
-			log.Println("Получено новое соединение с базой данных, обновляем кэш...")
+			log2.Info("Получено новое соединение с базой данных, обновляем кэш...")
 			mu.Lock()
 			if !isUpdating {
 				isUpdating = true
@@ -393,9 +395,10 @@ func (r *OrderRepo) ListenForDbChanges(ctx context.Context, updateCache <-chan i
 				mu.Lock()
 				isUpdating = false
 			} else {
-				log.Println("кеш уже в процессе обновления...")
+				log2.Info("кеш уже в процессе обновления...")
 			}
 			mu.Unlock()
+
 		case <-tickerCacheCheck.C:
 			mu.Lock()
 			//log.Println("Проверка состояния кеша...")
@@ -404,20 +407,21 @@ func (r *OrderRepo) ListenForDbChanges(ctx context.Context, updateCache <-chan i
 				mu.Unlock()
 				c, err := r.GetOrderCount(ctx)
 				if err != nil {
-					log.Printf("Ошибка при проверке состояние кеша: %v\n", err)
+					log2.Errorf("ListenForDbChanges-> r.GetOrderCount: ошибка при проверке состояние кеша: %s", err.Error())
 				} else if c != r.cache.ItemCount() {
-					log.Printf("Количество элементов в базе данных: %d/%d, обновляем кэш...", c, r.cache.ItemCount())
+					log2.Infof("Количество элементов в базе данных: %d/%d, обновляем кэш...", c, r.cache.ItemCount())
 					r.UpdateCache(ctx)
 				}
 				mu.Lock()
 				isUpdating = false
 			} else {
-				log.Println("кеш уже в процессе обновления...")
+				log2.Info("кеш уже в процессе обновления...")
 			}
 			mu.Unlock()
+
 		case <-tickerFullUpdate.C:
 			mu.Lock()
-			log.Println("Полное обновление кеша...")
+			log2.Info("Полное обновление кеша...")
 			if !isUpdating {
 				isUpdating = true
 				mu.Unlock()
@@ -425,7 +429,7 @@ func (r *OrderRepo) ListenForDbChanges(ctx context.Context, updateCache <-chan i
 				mu.Lock()
 				isUpdating = false
 			} else {
-				log.Println("кеш уже в процессе обновления...")
+				log2.Info("кеш уже в процессе обновления...")
 			}
 			mu.Unlock()
 		}
@@ -434,12 +438,12 @@ func (r *OrderRepo) ListenForDbChanges(ctx context.Context, updateCache <-chan i
 
 func (r *OrderRepo) GetOrderByIdFromCache(orderId entity2.OrderId) (*entity2.Order, error) {
 	if r.cache.ItemCount() == 0 {
-		return nil, fmt.Errorf("нет элементов в кеше")
+		return nil, fmt.Errorf("-> r.cache.ItemCount(): нет элементов в кеше")
 	}
 
 	order, found := r.cache.Get(orderId)
 	if !found {
-		return nil, fmt.Errorf("заказ под %s найден", orderId)
+		return nil, fmt.Errorf("-> r.cache.Get: заказ под id %s найден", orderId)
 	}
 
 	return order, nil

@@ -1,8 +1,8 @@
 package database
 
 import (
-	"errors"
 	"fmt"
+	log2 "github.com/sirupsen/logrus"
 )
 
 type DBConfig struct {
@@ -17,14 +17,14 @@ type DBConfig struct {
 
 func (c *DBConfig) Validate() error {
 	if c.Driver == "" {
-		return errors.New("driver not specified")
+		return fmt.Errorf("-> c.Connection.Validate: драйвер не указан")
 	}
 
 	switch c.Driver {
 	case "postgres":
-
+		log2.Debugf("Драйвер %s найден", c.Driver)
 	default:
-		return errors.New("driver not specified")
+		return fmt.Errorf("-> c.Connection.Validate: драйвер не найден")
 	}
 	return nil
 }

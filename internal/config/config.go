@@ -30,17 +30,15 @@ func GetDefaultConfig() (*Config, error) {
 	//err := cfg.loadConfigParam("src/internal/config/config.yml")
 	err := cfg.loadEnvParam()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("-> cfg.loadEnvParam%w", err)
 	}
-
 	return cfg, nil
 }
 
-func GetConfig(filePath string) (*Config, error) {
+func GetConfigFromFile(filePath string) (*Config, error) {
 	if filePath == "" {
-		return nil, fmt.Errorf("путь до конфига не указан")
+		return nil, fmt.Errorf(": путь до конфига filePath не указан")
 	}
-
 	cfg := newConfig()
 	err := cfg.loadConfigParam(filePath)
 	//err := cfg.loadEnvParam()
@@ -65,33 +63,33 @@ func (c *Config) validate() error {
 func (c *Config) loadConfigParam(filePath string) error {
 	_, err := os.Stat(filePath)
 	if !(err == nil || !os.IsNotExist(err)) {
-		return ErrorNotFoundConfig
+		return fmt.Errorf("-> os.Stat: файл по указаному пути не найден %s", filePath)
 	}
 
 	file, err := os.OpenFile(filePath, os.O_RDONLY, 0666)
 	if err != nil {
-		return fmt.Errorf("failed to read config, %w", err)
+		return fmt.Errorf("-> os.OpenFile: ошибка при открытии файла %s: %w", filePath, err)
 	}
 	defer file.Close()
 
 	buf, err := io.ReadAll(file)
 	if err != nil {
-		return fmt.Errorf("failed to read config, %w, %s", err, string(buf))
+		return fmt.Errorf("-> io.ReadAll: ошибка при чтении файла %s: %w", filePath, err)
 	}
 
 	err = yaml.Unmarshal(buf, c)
 	if err != nil {
-		return fmt.Errorf("failed unmarshalling, %w", err)
+		return fmt.Errorf("-> yaml.Unmarshal: ошибка при кодировании файла: %w", err)
 	}
 
 	err = cleanenv.UpdateEnv(c)
 	if err != nil {
-		return fmt.Errorf("error updating env: %w", err)
+		return fmt.Errorf("-> cleanenv.UpdateEnv: ошибка при обновлении параметроа из переменныз окружения%w", err)
 	}
 
 	err = c.validate()
 	if err != nil {
-		return fmt.Errorf("failed driver validation, %w", err)
+		return fmt.Errorf("-> c.validate%w", err)
 	}
 
 	return nil
@@ -100,7 +98,7 @@ func (c *Config) loadConfigParam(filePath string) error {
 func (c *Config) loadEnvParam() error {
 	var newConf database.DBConfig
 	if err := cleanenv.ReadEnv(&newConf); err != nil {
-		return fmt.Errorf("-> cleanenv.ReadEnv: ошибка загрузки env параметров: %w", err)
+		return fmt.Errorf("-> cleanenv.ReadEnv: ошибка загрузки env параметров конфига для подключения к бд: %w", err)
 	}
 	c.Connection = &newConf
 	c.Connection.Driver = "postgres"

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
+	log2 "github.com/sirupsen/logrus"
 	"log"
 )
 
@@ -35,13 +36,13 @@ func NewOrderConsumer(conf *ConfigKafka, orderSerivce *service.OrderService, gro
 
 	clientConsumer, err := kafka.NewConsumer(&configMapConsumer)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка при создании -> kafka.NewConsumer %w", err)
+		return nil, fmt.Errorf("-> kafka.NewConsumer: ошибка при создании Consumer: %w", err)
 	}
 
 	log.Println(conf.Topic)
 	err = clientConsumer.Subscribe("orders.event.request", nil)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка при подписке -> client.Subscribe %w", err)
+		return nil, fmt.Errorf("-> clientConsumer.Subscribe: ошибка при подписке на топик %s: %w", conf.Topic, err)
 	}
 
 	configMapProducer := kafka.ConfigMap{
@@ -52,11 +53,11 @@ func NewOrderConsumer(conf *ConfigKafka, orderSerivce *service.OrderService, gro
 
 	clientProducer, err := kafka.NewProducer(&configMapProducer)
 	if err != nil {
-		err := clientConsumer.Close()
-		if err != nil {
-			return nil, fmt.Errorf("ошибка при закрытии -> clientConsumer.Close %w", err)
+		errClose := clientConsumer.Close()
+		if errClose != nil {
+			return nil, fmt.Errorf("-> kafka.NewProducer-> clientConsumer.Close: ошибка при создании Producer: %w. Ошибка при закрытии Consumer: %w", err, errClose)
 		}
-		return nil, fmt.Errorf("ошибка при инициализации -> kafka.NewProducer %w", err)
+		return nil, fmt.Errorf("-> kafka.NewProducer: ошибка при создании Producer: %w", err)
 	}
 
 	return &OrderConsumer{
@@ -70,7 +71,7 @@ func NewOrderConsumer(conf *ConfigKafka, orderSerivce *service.OrderService, gro
 func (oc *OrderConsumer) ListenAndServe(ctx context.Context) {
 	commit := func(msg *kafka.Message) {
 		if _, err := oc.Consumer.CommitMessage(msg); err != nil {
-			log.Printf("Коммит не выполнен: %s", err)
+			log2.Errorf("ListenAndServe-> op.consumer.CommitMessage: коммит не выполнен: %s", err)
 		}
 	}
 
@@ -79,9 +80,10 @@ func (oc *OrderConsumer) ListenAndServe(ctx context.Context) {
 	for run {
 		select {
 		case <-ctx.Done():
-			log.Printf("Обработчик заказов остановлен...")
+			log2.Info("Обработчик заказов остановлен...")
 			run = false
 			break
+
 		default:
 			msg, ok := oc.Consumer.Poll(150).(*kafka.Message)
 			if !ok {
@@ -89,12 +91,9 @@ func (oc *OrderConsumer) ListenAndServe(ctx context.Context) {
 			}
 
 			var evt event
-
 			if err := json.NewDecoder(bytes.NewReader(msg.Value)).Decode(&evt); err != nil {
-				log.Printf("Ошибка при декодировании event: %s", err)
-
+				log2.Errorf("ListenAndServe-> json.NewDecoder: ошибка при декодировании event: %s", err)
 				commit(msg)
-
 				continue
 			}
 
@@ -104,16 +103,17 @@ func (oc *OrderConsumer) ListenAndServe(ctx context.Context) {
 			case "orders.event.request.create":
 				var createEvent eventCreate
 				if err := json.Unmarshal(msg.Value, &createEvent); err != nil {
-					log.Printf("Ошибка при декодировании createEvent: %s", err)
+					log2.Errorf("ListenAndServe-> json.NewDecoder: ошибка при декодировании eventCreate: %s", err)
 					commit(msg)
 					continue
 				}
+
 				orderIDs, err := oc.OrderService.Repo.CreateOrder(ctx, createEvent.Value)
 				if err == nil {
-					log.Println("Заказы успешно добвлены: ", orderIDs)
+					log2.Infof("Заказы успешно добвлены: %v", orderIDs)
 					commit(msg)
 				} else {
-					log.Println("Заказы не добавлены в базу данных: ", orderIDs)
+					log2.Errorf("ListenAndServe-> oc.OrderService.Repo.CreateOrder: заказы не добавлены в базу данных:%s", err.Error())
 				}
 
 			case "orders.event.request.getByID":
