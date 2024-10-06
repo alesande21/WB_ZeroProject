@@ -4,12 +4,11 @@ import (
 	entity2 "WB_ZeroProject/internal/entity"
 	kafka2 "WB_ZeroProject/internal/kafka"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/invopop/yaml"
+	log2 "github.com/sirupsen/logrus"
 	"io"
-	"log"
 	"net/http"
 	"os"
 )
@@ -23,36 +22,25 @@ type ServerAddress struct {
 func (a *ServerAddress) LoadConfigAddress(filePath string) error {
 	_, err := os.Stat(filePath)
 	if !(err == nil || !os.IsNotExist(err)) {
-		return errors.New("конфиг для localhost и port не найден")
+		return fmt.Errorf("-> os.Stat: файла не существует %s: %w", filePath, err)
 	}
-
-	//if err != nil {
-	//	if os.IsNotExist(err) {
-	//		return errors.New("конфиг для localhost и port не найден")
-	//	}
-	//	return fmt.Errorf("ошибка проверки файла: %w", err)
-	//}
 
 	file, err := os.OpenFile(filePath, os.O_RDONLY, 0666)
 	if err != nil {
-		return fmt.Errorf("ошибка чтения конфига, %w", err)
+		return fmt.Errorf("-> os.OpenFile: ошибка при открытии файла %s: %w", filePath, err)
+
 	}
 	defer file.Close()
 
 	buf, err := io.ReadAll(file)
 	if err != nil {
-		return fmt.Errorf("ошибка чтения конфига, %w, %s", err, string(buf))
+		return fmt.Errorf("-> os.OpenFile: ошибка при чтении файла %s: %w", filePath, err)
 	}
 
 	err = yaml.Unmarshal(buf, a)
 	if err != nil {
-		return fmt.Errorf("ошибка unmarshal, %w", err)
+		return fmt.Errorf("->  yaml.Unmarshal: ошибка при конвертации: %w", err)
 	}
-
-	//УДАЛИТЬ
-	a.Localhost = "127.0.0.1"
-	a.DefaultPort = 8080
-	a.EnvAddress = "127.0.0.1:8080"
 
 	return nil
 }
@@ -60,7 +48,7 @@ func (a *ServerAddress) LoadConfigAddress(filePath string) error {
 func (a *ServerAddress) UpdateEnvAddress() error {
 	err := cleanenv.ReadEnv(a)
 	if err != nil {
-		return fmt.Errorf("ошибка updating env адреса сервера: %w", err)
+		return fmt.Errorf("-> cleanenv.ReadEnv: ошибка загрузки параметров из переменных окружения: %w", err)
 	}
 	return nil
 }
@@ -86,7 +74,7 @@ func sendErrorResponse(w http.ResponseWriter, code int, resp entity2.ErrorRespon
 	w.WriteHeader(code)
 	err := json.NewEncoder(w).Encode(resp)
 	if err != nil {
-		return
+		log2.Infof("sendErrorResponse: ошибка при формировании ответа ошибки %s: %s", resp, err.Error())
 	}
 }
 
@@ -126,46 +114,48 @@ func sendErrorResponse(w http.ResponseWriter, code int, resp entity2.ErrorRespon
 //	}
 //}
 
-func (os *OrderServer) CreateOrder(w http.ResponseWriter, r *http.Request) {
+func (os OrderServer) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	var newOrders []entity2.Order
 	if err := json.NewDecoder(r.Body).Decode(&newOrders); err != nil {
-		log.Println("Неверный формат для заказа!")
+		log2.Errorf("CreateOrder-> json.NewDecoder: неверный формат для заказа: %s", err.Error())
 		sendErrorResponse(w, http.StatusBadRequest, entity2.ErrorResponse{Reason: "Неверный формат для заказа."})
 		return
 	}
 
 	err := os.orderPlacer.CreateOrder(r.Context(), "orders.event.request.create", newOrders)
 	if err != nil {
+		log2.Errorf("CreateOrder-> os.orderPlacer.CreateOrder%s", err.Error())
 		sendErrorResponse(w, http.StatusInternalServerError, entity2.ErrorResponse{Reason: "Ошибка создания заказа."})
 		return
 	}
 
 	w.WriteHeader(http.StatusAccepted)
 	w.Header().Set("Content-Type", "application/json")
-
-	// TODO: возможно добавить id ордеров или убрать вовсе
 	msg := "Ордера приняты в обработку."
 	if err := json.NewEncoder(w).Encode(msg); err != nil {
+		log2.Errorf("CreateOrder-> json.NewEncoder: ошибка при кодирования овета: %s", err.Error())
 		sendErrorResponse(w, http.StatusInternalServerError, entity2.ErrorResponse{Reason: "Ошибка кодирования ответа."})
 	}
 }
 
-func (os *OrderServer) GetOrderById(w http.ResponseWriter, r *http.Request, orderUid entity2.OrderId) {
+func (os OrderServer) GetOrderById(w http.ResponseWriter, r *http.Request, orderUid entity2.OrderId) {
 	if orderUid == "" {
-		sendErrorResponse(w, http.StatusBadRequest, entity2.ErrorResponse{Reason: "Неверный формат запроса или его параметры."})
+		log2.Error("GetOrderById: неверный формат запроса или его параметры: оrderID пустой")
+		sendErrorResponse(w, http.StatusBadRequest, entity2.ErrorResponse{Reason: "Неверный формат запроса или его параметры. Не указан OrderId."})
 		return
 	}
 
 	order, err := os.orderPlacer.GetOrder(r.Context(), "orders.event.request.getByID", orderUid)
 	if err != nil {
+		log2.Errorf("GetOrderById-> os.orderPlacer.GetOrder%s", err.Error())
 		sendErrorResponse(w, http.StatusNotFound, entity2.ErrorResponse{Reason: "Заказ не найден."})
-		log.Printf("orderPlacer.GetOrder -> %s", err.Error())
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(order); err != nil {
+		log2.Errorf("GetOrderById-> json.NewEncoder: ошибка при кодирования овета: %s", err.Error())
 		sendErrorResponse(w, http.StatusInternalServerError, entity2.ErrorResponse{Reason: "Ошибка кодирования ответа."})
 	}
 }
@@ -175,6 +165,6 @@ func (os OrderServer) GetApiPing(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(res)
 	if err != nil {
-		return
+		log2.Errorf("GetApiPing-> json.NewEncoder: ошибка при кодирования овета: %s", err.Error())
 	}
 }

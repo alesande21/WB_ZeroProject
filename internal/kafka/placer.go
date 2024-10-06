@@ -134,7 +134,7 @@ func (op *OrderPlacer) CreateOrder(ctx context.Context, msgType string, orders [
 	err := json.NewEncoder(&b).Encode(evt)
 
 	if err != nil {
-		return fmt.Errorf("ошибка кодироования сообщения event: %w", err)
+		return fmt.Errorf("-> json.NewEncoder: ошибка кодирования сообщения eventCreate: %w", err)
 	}
 
 	err = op.producer.Produce(&kafka.Message{
@@ -148,7 +148,7 @@ func (op *OrderPlacer) CreateOrder(ctx context.Context, msgType string, orders [
 	)
 
 	if err != nil {
-		return fmt.Errorf("ошибка при producer.Produce: %w", err)
+		return fmt.Errorf("-> op.producer.Produce: ошибка при отправке сообщения: %w", err)
 	}
 
 	return nil
@@ -160,7 +160,7 @@ func (op *OrderPlacer) GetOrder(ctx context.Context, msgType string, orderId ent
 	var b bytes.Buffer
 	correlationID, err := utils.GenerateUUIDV7()
 	if err != nil {
-		return nil, fmt.Errorf("ошибка при генерации uuid -> utils.GenerateUUIDV7: %w", err)
+		return nil, fmt.Errorf("-> utils.GenerateUUIDV7: ошибка при генерации uuid: %w", err)
 	}
 
 	evt := eventGet{
@@ -172,7 +172,8 @@ func (op *OrderPlacer) GetOrder(ctx context.Context, msgType string, orderId ent
 	err = json.NewEncoder(&b).Encode(evt)
 
 	if err != nil {
-		return nil, fmt.Errorf("ошибка кодироования сообщения event -> NewEncoder.Encode: %w", err)
+		return nil, fmt.Errorf("-> json.NewEncoder: ошибка кодирования сообщения eventGet: %w", err)
+
 	}
 
 	err = op.producer.Produce(&kafka.Message{
@@ -186,7 +187,7 @@ func (op *OrderPlacer) GetOrder(ctx context.Context, msgType string, orderId ent
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("сообщение не было отправлено %w", err)
+		return nil, fmt.Errorf("-> op.producer.Produce: ошибка при отправке сообщения: %w", err)
 	}
 
 	return op.awaitResponse(correlationID)
@@ -203,16 +204,16 @@ func (op *OrderPlacer) awaitResponse(correlationID string) (*entity2.Order, erro
 	select {
 	case eventResponse := <-responseCh:
 		if eventResponse == nil {
-			return nil, fmt.Errorf("ответ по CorrelationID %s пустой", correlationID)
+			return nil, fmt.Errorf("-> op.awaitResponse: ответ на запрос по CorrelationID %s пустой", correlationID)
 		}
 
 		if correlationID != eventResponse.CorrelationID {
-			return nil, fmt.Errorf("запрашевыемый сorrelationID и сorrelationID ответа не совпадают %s != %s",
+			return nil, fmt.Errorf("-> op.awaitResponse: запрашевыемый сorrelationID и сorrelationID ответа не совпадают %s != %s",
 				correlationID, eventResponse.CorrelationID)
 		}
 
 		if eventResponse.Status != true {
-			return nil, fmt.Errorf("ошибка при поиске CorrelationID eventResponse.Status == false %s", correlationID)
+			return nil, fmt.Errorf("-> op.awaitResponse: ошибка при поиске CorrelationID %s eventResponse.Status == false", correlationID)
 		}
 
 		return &eventResponse.Order, nil
@@ -221,7 +222,7 @@ func (op *OrderPlacer) awaitResponse(correlationID string) (*entity2.Order, erro
 		op.Lock()
 		delete(op.responseMap, correlationID)
 		op.Unlock()
-		return nil, fmt.Errorf("awaitResponse: ответ по CorrelationID %s не получен вовремя", correlationID)
+		return nil, fmt.Errorf("-> op.awaitResponse: ответ по CorrelationID %s не получен вовремя", correlationID)
 	}
 }
 
