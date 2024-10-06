@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	log2 "github.com/sirupsen/logrus"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,6 +17,10 @@ import (
 )
 
 func RunProducer() error {
+
+	// Загрузка конфига для кафки
+	SetLevel("debug", "console")
+	log2.Info("Настройка логера...")
 
 	// Загрузка конфига для кафки
 	log2.Info("Загрузка конфига для подключения к кафке...")
@@ -51,15 +54,13 @@ func RunProducer() error {
 	//err = serverAddress.LoadConfigAddress("src/internal/controllers/http/config.yml")
 	err = serverAddress.UpdateEnvAddress()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "настройки адреса сервера не загрузились\n: %s", err)
-		return nil
+		return fmt.Errorf("-> serverAddress.UpdateEnvAddress%w", err)
 	}
 
-	log.Println("Инициализация и старт сервера...")
+	log2.Info("Инициализация и старт сервера...")
 	swagger, err := http2.GetSwagger()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "ошибка загрузки сваггера\n: %s", err)
-		return nil
+		return fmt.Errorf("->  http2.GetSwagger%w", err)
 	}
 	swagger.Servers = nil
 
@@ -71,6 +72,7 @@ func RunProducer() error {
 	})
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
 
+	// TODO: надо бы включить middleware как то
 	//r.Use(middleware.OapiRequestValidator(swagger))
 	http2.HandlerFromMux(tenderServer, r)
 
@@ -81,18 +83,20 @@ func RunProducer() error {
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
+	defer close(interrupt)
 
 	shutDownChan := make(chan error, 1)
+	defer close(shutDownChan)
 
 	go func() {
 		shutDownChan <- s.ListenAndServe()
 	}()
 
-	log.Printf("Подключнеие установлено -> %s", colorAttribute.ColorString(colorAttribute.FgYellow, serverAddress.EnvAddress))
+	log2.Infof("Подключнеие установлено -> %s", colorAttribute.ColorString(colorAttribute.FgYellow, serverAddress.EnvAddress))
 
 	select {
 	case sig := <-interrupt:
-		log.Printf("Приложение прерывается: %s", sig)
+		log2.Infof("Приложение прерывается: %s", sig)
 
 		ctxShutDown, cancelShutdown := context.WithTimeout(context.Background(), 10*time.Second)
 
@@ -102,13 +106,14 @@ func RunProducer() error {
 		defer cancelShutdown()
 		err := s.Shutdown(ctxShutDown)
 		if err != nil {
-			log.Printf("Ошибка при завершении сервера: %v", err)
+			//log2.Errorf("Ошибка при завершении сервера: %v", err)
+			return fmt.Errorf("-> s.Shutdown: %w", err)
 		}
 
-		log.Println("Сервер завершил работу")
+		log2.Info("Сервер завершил работу")
 	case err := <-shutDownChan:
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("Ошибка при запуске сервера: %s", err)
+			return fmt.Errorf(": ошибка при запуске сервера: %w", err)
 		}
 	}
 

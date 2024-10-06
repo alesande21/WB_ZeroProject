@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/ilyakaznacheev/cleanenv"
+	log2 "github.com/sirupsen/logrus"
 	"log"
 	"sync"
 	"time"
@@ -229,7 +230,7 @@ func (op *OrderPlacer) awaitResponse(correlationID string) (*entity2.Order, erro
 func (op *OrderPlacer) ListenResponse(ctx context.Context) {
 	commit := func(msg *kafka.Message) {
 		if _, err := op.consumer.CommitMessage(msg); err != nil {
-			log.Printf("Коммит не выполнен: %s", err)
+			log2.Errorf("ListenResponse-> op.consumer.CommitMessage: коммит не выполнен: %s", err)
 		}
 	}
 
@@ -238,9 +239,10 @@ func (op *OrderPlacer) ListenResponse(ctx context.Context) {
 	for run {
 		select {
 		case <-ctx.Done():
-			log.Printf("Обработчик ответов остановлен...")
+			log2.Info("Обработчик ответов остановлен...")
 			run = false
 			break
+
 		default:
 			msg, ok := op.consumer.Poll(150).(*kafka.Message)
 			if !ok {
@@ -248,12 +250,9 @@ func (op *OrderPlacer) ListenResponse(ctx context.Context) {
 			}
 
 			var evt event
-
 			if err := json.NewDecoder(bytes.NewReader(msg.Value)).Decode(&evt); err != nil {
-				log.Printf("Ошибка при декодировании event: %s", err)
-
+				log2.Errorf("ListenResponse-> json.NewDecoder: ошибка при декодировании event: %s", err)
 				commit(msg)
-
 				continue
 			}
 
@@ -263,7 +262,7 @@ func (op *OrderPlacer) ListenResponse(ctx context.Context) {
 			case "orders.event.response":
 				var responseEvent eventGetResponse
 				if err := json.NewDecoder(bytes.NewReader(msg.Value)).Decode(&responseEvent); err != nil {
-					log.Printf("Ошибка при декодировании responseEvent: %s", err)
+					log2.Errorf("ListenResponse-> json.NewDecoder: ошибка при декодировании responseEvent: %s", err)
 					commit(msg)
 					continue
 				}
@@ -272,7 +271,7 @@ func (op *OrderPlacer) ListenResponse(ctx context.Context) {
 				commit(msg)
 
 			default:
-				log.Printf("Неизвестный тип события: %s", evt.Type)
+				log2.Errorf("ListenResponse: неизвестный тип события: %s", evt.Type)
 				commit(msg)
 			}
 
