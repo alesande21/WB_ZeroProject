@@ -351,7 +351,6 @@ func (r *OrderRepo) ListenForDbChanges(ctx context.Context, updateCache <-chan i
 		case <-ctx.Done():
 			log2.Info("Прекращается обновление кеша...")
 			return
-
 		case <-updateCache:
 			log2.Info("Получено новое соединение с базой данных, обновляем кэш...")
 			mu.Lock()
@@ -401,6 +400,7 @@ func (r *OrderRepo) ListenForDbChanges(ctx context.Context, updateCache <-chan i
 			mu.Unlock()
 		}
 	}
+
 }
 
 func (r *OrderRepo) GetOrderByIdFromCache(orderId entity2.OrderId) (*entity2.Order, error) {

@@ -116,7 +116,7 @@ func RunConsumer() error {
 			//}
 
 			log2.Info("Обработчик завершил работу работу")
-
+			return nil
 		case err := <-shutDownChan:
 			if err != nil && !errors.Is(err, http.ErrServerClosed) {
 				return fmt.Errorf(": ошибка при запуске сервера: %s", err)
