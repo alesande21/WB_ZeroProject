@@ -8,7 +8,6 @@ import (
 	_ "github.com/lib/pq"
 	_ "github.com/patrickmn/go-cache"
 	log2 "github.com/sirupsen/logrus"
-	"log"
 	"sync"
 	"time"
 )
@@ -142,7 +141,7 @@ func (r *OrderRepo) CreateOrder(ctx context.Context, newOrders []entity2.Order) 
 
 	tx, err := r.dbRepo.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, fmt.Errorf("не удалось начать транзакцию: %v", err)
+		return nil, fmt.Errorf("-> r.dbRepo.BeginTx: не удалось начать транзакцию: %w", err)
 	}
 	defer func() {
 		if err != nil {
@@ -160,9 +159,9 @@ func (r *OrderRepo) CreateOrder(ctx context.Context, newOrders []entity2.Order) 
 			&order.InternalSignature, &order.CustomerId, &order.DeliveryService, &order.Shardkey, &order.SmId,
 			&order.DateCreated, &order.OofShard)
 		if err != nil {
-			log.Printf("Ошибка в вставке данных в таблицу заказов: %v\n", err)
-			return nil, err
+			return nil, fmt.Errorf("-> row.Scan: ошибка в вставке данных в таблицу заказов: %w", err)
 		}
+
 		delivery := order.Delivery
 
 		row = tx.QueryRowContext(ctx, queryDelivery, order.OrderUid, delivery.Name, delivery.Phone, delivery.Zip,
@@ -170,8 +169,7 @@ func (r *OrderRepo) CreateOrder(ctx context.Context, newOrders []entity2.Order) 
 		err = row.Scan(&delivery.Name, &delivery.Phone, &delivery.Zip, &delivery.City, &delivery.Address,
 			&delivery.Region, &delivery.Email)
 		if err != nil {
-			log.Printf("Ошибка в вставке данных в таблицу доставка: %v\n", err)
-			return nil, err
+			return nil, fmt.Errorf("-> row.Scan: ошибка в вставке данных в таблицу доставка: %w", err)
 		}
 
 		payment := order.Payment
@@ -181,8 +179,7 @@ func (r *OrderRepo) CreateOrder(ctx context.Context, newOrders []entity2.Order) 
 		err = row.Scan(&payment.Transaction, &payment.RequestId, &payment.Currency, &payment.Provider, &payment.Amount,
 			&payment.PaymentDt, &payment.Bank, &payment.DeliveryCost, &payment.GoodsTotal, &payment.CustomFee)
 		if err != nil {
-			log.Printf("Ошибка в вставке данных в таблицу платежей: %v\n", err)
-			return nil, err
+			return nil, fmt.Errorf("-> row.Scan: ошибка в вставке данных в таблицу платежей: %w", err)
 		}
 		order.Payment = payment
 		for i, item := range order.Items {
@@ -191,8 +188,7 @@ func (r *OrderRepo) CreateOrder(ctx context.Context, newOrders []entity2.Order) 
 			err = row.Scan(&item.ChrtId, &item.TrackNumber, &item.Price, &item.Rid, &item.Name, &item.Sale, &item.Size,
 				&item.TotalPrice, &item.NmId, &item.Brand, &item.Status)
 			if err != nil {
-				log.Printf("Ошибка в вставке данных в таблицу товаров: %v\n", err)
-				return nil, err
+				return nil, fmt.Errorf("-> row.Scan: ошибка в вставке данных в таблицу товаров: %w", err)
 			}
 			order.Items[i] = item
 		}
@@ -200,7 +196,7 @@ func (r *OrderRepo) CreateOrder(ctx context.Context, newOrders []entity2.Order) 
 	}
 	err = tx.Commit()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("-> tx.Commit: не удалось завершить транзакцию: %w", err)
 	}
 
 	for _, order := range newOrders {
@@ -225,8 +221,7 @@ func (r *OrderRepo) GetOrderByIdFromDb(ctx context.Context, orderId entity2.Orde
 	err := row.Scan(&order.OrderUid, &order.TrackNumber, &order.Entry, &order.Locale, &order.InternalSignature,
 		&order.CustomerId, &order.DeliveryService, &order.Shardkey, &order.SmId, &order.DateCreated, &order.OofShard)
 	if err != nil {
-		log.Printf("Заказ по orderId не найден: %v\n", err)
-		return nil, err
+		return nil, fmt.Errorf("-> r.dbRepo.QueryRow.Scan: заказ по orderId %s не найден: %w", orderId, err)
 	}
 
 	query = `
@@ -242,8 +237,7 @@ func (r *OrderRepo) GetOrderByIdFromDb(ctx context.Context, orderId entity2.Orde
 	err = row.Scan(&delivery.Name, &delivery.Phone, &delivery.Zip, &delivery.City, &delivery.Address, &delivery.Region,
 		&delivery.Email)
 	if err != nil {
-		log.Printf("Доставка по orderId не найдена: %v\n", err)
-		return nil, err
+		return nil, fmt.Errorf("-> r.dbRepo.QueryRow.Scan: доставка по orderId %s не найдена: %w", orderId, err)
 	}
 
 	order.Delivery = delivery
@@ -262,8 +256,7 @@ func (r *OrderRepo) GetOrderByIdFromDb(ctx context.Context, orderId entity2.Orde
 	err = row.Scan(&payment.Transaction, &payment.RequestId, &payment.Currency, &payment.Provider, &payment.Amount,
 		&payment.PaymentDt, &payment.Bank, &payment.DeliveryCost, &payment.GoodsTotal, &payment.CustomFee)
 	if err != nil {
-		log.Printf("Платежные данные по orderId не найдены: %v\n", err)
-		return nil, err
+		return nil, fmt.Errorf("-> r.dbRepo.QueryRow.Scan: платежные данные по orderId %s не найдены: %w", orderId, err)
 	}
 
 	order.Payment = payment
@@ -276,8 +269,7 @@ func (r *OrderRepo) GetOrderByIdFromDb(ctx context.Context, orderId entity2.Orde
 
 	rows, err := r.dbRepo.Query(ctx, query, orderId)
 	if err != nil {
-		log.Printf("Товары для заказа не найдены: %v\n", err)
-		return nil, err
+		return nil, fmt.Errorf("->  r.dbRepo.Query: товары для заказа orderId %s не найдены: %w", orderId, err)
 	}
 	defer rows.Close()
 
@@ -287,15 +279,12 @@ func (r *OrderRepo) GetOrderByIdFromDb(ctx context.Context, orderId entity2.Orde
 		err := rows.Scan(&item.ChrtId, &item.TrackNumber, &item.Price, &item.Rid, &item.Name, &item.Sale, &item.Size,
 			&item.TotalPrice, &item.NmId, &item.Brand, &item.Status)
 		if err != nil {
-			log.Printf("ошибка выполнения при обработке товаров: %v\n", err)
-			return nil, err
+			return nil, fmt.Errorf("-> rows.Next.Scan: ошибка выполнения при обработке товаров для orderId %s: %w", orderId, err)
 		}
 		items = append(items, item)
 	}
 
 	order.Items = items
-
-	fmt.Println(order)
 
 	return &order, nil
 }
@@ -317,30 +306,9 @@ func (r *OrderRepo) Ping() error {
 }
 
 func (r *OrderRepo) UpdateCache(ctx context.Context) {
-	/*
-		c, err := r.GetOrderCount(ctx)
-		if err != nil || c == 0 {
-			log.Printf("Ошибка обновление кеша: %v. Количество элементов в базе данных: %d", err, c)
-			return
-		}
-
-		orders, err := r.GetOrders(ctx, entity2.PaginationLimit(c), 0)
-		if err != nil {
-			log.Printf("Ошибка при обновление кеша: %v", err)
-			return
-		}
-
-		for _, order := range orders {
-			r.cache.Set(order.OrderUid, order)
-		}
-		log.Printf("Кеш обновлен. Количество элементов в кеше/базе данных: %d/%d", r.cache.ItemCount(), c)
-
-
-	*/
-
 	c, err := r.GetOrderCount(ctx)
 	if err != nil || c == 0 {
-		log.Printf("Ошибка обновление кеша: %v. Количество элементов в базе данных: %d", err, c)
+		log2.Errorf("UpdateCache-> r.GetOrderCount: Количество элементов в базе данных %d. Ошибка обновление кеша: %s", c, err.Error())
 		return
 	}
 
@@ -350,7 +318,7 @@ func (r *OrderRepo) UpdateCache(ctx context.Context) {
 	for {
 		orders, err := r.GetOrders(ctx, entity2.PaginationLimit(batchSize), entity2.PaginationOffset(offset))
 		if err != nil {
-			log.Printf("Ошибка при обновлении кеша: %v", err)
+			log2.Errorf("UpdateCache-> r.GetOrders%s", err.Error())
 			return
 		}
 
@@ -365,8 +333,7 @@ func (r *OrderRepo) UpdateCache(ctx context.Context) {
 		offset += batchSize
 	}
 
-	log.Printf("Кеш обновлен. Количество элементов в кеше/базе данных: %d/%d", r.cache.ItemCount(), c)
-
+	log2.Infof("UpdateCache: кеш обновлен. Количество элементов в кеше/базе данных: %d/%d", r.cache.ItemCount(), c)
 }
 
 func (r *OrderRepo) ListenForDbChanges(ctx context.Context, updateCache <-chan interface{}) {

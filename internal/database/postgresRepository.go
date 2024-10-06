@@ -8,8 +8,6 @@ import (
 )
 
 type postgresDBRepository struct {
-	// TODO: вместо соединения поставить функцию
-	//Conn *sql.DB
 	getConnection func() *sql.DB
 }
 
@@ -31,12 +29,12 @@ func (p *postgresDBRepository) BeginTx(ctx context.Context, opts *sql.TxOptions)
 
 func (p *postgresDBRepository) Ping() error {
 	if p == nil {
-		return fmt.Errorf("репозиторий не инициализирован")
+		return fmt.Errorf(": репозиторий не инициализирован")
 	}
 
 	err := p.getConnection().Ping()
 	if err != nil {
-		return fmt.Errorf("проблема с поключением к базе данных: %s", err.Error())
+		return fmt.Errorf("-> p.getConnection().Ping: проблема с поключением к базе данных: %w", err)
 	}
 
 	return nil
@@ -46,25 +44,3 @@ func CreatePostgresRepository(newConnection func() *sql.DB) (DBRepository, error
 	var rep DBRepository = &postgresDBRepository{getConnection: newConnection}
 	return rep, nil
 }
-
-/*
-func CreatePostgresRepository(db *sql.DB, connChan chan *sql.DB) (DBRepository, error) {
-	var rep DBRepository = &postgresDBRepository{Conn: db}
-	go func() {
-		for newConn := range connChan {
-			log.Println("Обновление подключения к базе данных в репозитории...")
-			rep.UpdateConn(newConn)
-		}
-	}()
-	return rep, nil
-}
-
-func CreatePostgresRepository(db *sql.DB) (DBRepository, error) {
-	var rep DBRepository = &postgresDBRepository{Conn: db}
-	return rep, nil
-}
-
-func (p *postgresDBRepository) UpdateConn(updateConn *sql.DB) {
-	p.Conn = updateConn
-}
-*/

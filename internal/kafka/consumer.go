@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	log2 "github.com/sirupsen/logrus"
-	"log"
 )
 
 type OrderConsumer struct {
@@ -39,7 +38,6 @@ func NewOrderConsumer(conf *ConfigKafka, orderSerivce *service.OrderService, gro
 		return nil, fmt.Errorf("-> kafka.NewConsumer: ошибка при создании Consumer: %w", err)
 	}
 
-	log.Println(conf.Topic)
 	err = clientConsumer.Subscribe("orders.event.request", nil)
 	if err != nil {
 		return nil, fmt.Errorf("-> clientConsumer.Subscribe: ошибка при подписке на топик %s: %w", conf.Topic, err)
@@ -113,14 +111,14 @@ func (oc *OrderConsumer) ListenAndServe(ctx context.Context) {
 					log2.Infof("Заказы успешно добвлены: %v", orderIDs)
 					commit(msg)
 				} else {
-					log2.Errorf("ListenAndServe-> oc.OrderService.Repo.CreateOrder: заказы не добавлены в базу данных:%s", err.Error())
+					log2.Errorf("ListenAndServe-> oc.OrderService.Repo.CreateOrder%s", err.Error())
 				}
 
 			case "orders.event.request.getByID":
 
 				var getEvent eventGet
 				if err := json.Unmarshal(msg.Value, &getEvent); err != nil {
-					log.Printf("Ошибка при декодировании getEvent: %s", err)
+					log2.Errorf("ListenAndServe-> json.NewDecoder: ошибка при декодировании getEvent: %s", err)
 					commit(msg)
 					continue
 				}
@@ -132,7 +130,7 @@ func (oc *OrderConsumer) ListenAndServe(ctx context.Context) {
 					CorrelationID: getEvent.CorrelationID,
 				}
 				if err != nil {
-					log.Printf("Заказ с ID %s не найден: %s", evt.Value, err)
+					log2.Errorf("ListenAndServe-> oc.OrderService.GetOrderById%s", err.Error())
 					responseEvent.Status = false
 				} else {
 					responseEvent.Order = *order
@@ -141,7 +139,7 @@ func (oc *OrderConsumer) ListenAndServe(ctx context.Context) {
 				var b bytes.Buffer
 				err = json.NewEncoder(&b).Encode(responseEvent)
 				if err != nil {
-					log.Printf("Ошибка при кодировании ответа: %s", err)
+					log2.Errorf("ListenAndServe-> json.NewDecoder.Encode: ошибка при кодировании responseEvent: %s", err)
 					continue
 				}
 
@@ -154,15 +152,14 @@ func (oc *OrderConsumer) ListenAndServe(ctx context.Context) {
 				}
 
 				err = oc.Producer.Produce(&msgResp, nil)
-
 				if err == nil {
-					log.Printf("Ответ с заказом %s отправлен.", getEvent.Value)
+					log2.Infof("ListenAndServe: ответ с заказом %s отправлен.", getEvent.Value)
 				} else {
-					log.Printf("Ошибка при отправке ответа: %s", err)
+					log2.Errorf("ListenAndServe-> oc.Producer.Produce: ошибка при отправке ответа с заказом %s: %s", getEvent.Value, err)
 				}
 				commit(msg)
 			default:
-				log.Printf("Неизвестный тип события: %s", evt.Type)
+				log2.Infof("Неизвестный тип события: %s", evt.Type)
 				commit(msg)
 			}
 

@@ -281,13 +281,11 @@ func (op *OrderPlacer) ListenResponse(ctx context.Context) {
 }
 
 func (op *OrderPlacer) handleResponse(response *eventGetResponse) {
-	log.Println("handleResponse", op.responseMap, response.CorrelationID)
 	op.Lock()
 	responseCh, ok := op.responseMap[response.CorrelationID]
 	op.Unlock()
 
 	if ok {
-		log.Println("handleResponse", len(op.responseMap))
 		responseCh <- response
 		time.Sleep(2 * time.Second)
 		op.Lock()

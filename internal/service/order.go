@@ -3,7 +3,8 @@ package service
 import (
 	entity2 "WB_ZeroProject/internal/entity"
 	"context"
-	"log"
+	"fmt"
+	log2 "github.com/sirupsen/logrus"
 )
 
 type OrderRepo interface {
@@ -26,16 +27,17 @@ func NewOrderService(repo OrderRepo) *OrderService {
 }
 
 func (s *OrderService) GetOrderById(ctx context.Context, orderId entity2.OrderId) (*entity2.Order, error) {
+	var errDb error
 	order, err := s.Repo.GetOrderByIdFromCache(orderId)
 	if err != nil {
-		order, err = s.Repo.GetOrderByIdFromDb(ctx, orderId)
-		if err != nil {
-			return nil, err
+		order, errDb = s.Repo.GetOrderByIdFromDb(ctx, orderId)
+		if errDb != nil {
+			return nil, fmt.Errorf("-> s.Repo.GetOrderByIdFromCache%s<- s.Repo.GetOrderByIdFromDb%s", err, errDb)
 		}
-		log.Printf("Данные для заказа %s взяты из базы данных. Идет обновление кеша.", orderId)
+		log2.Infof("GetOrderById: данные для заказа %s взяты из базы данных. Запускается обновление кеша...", orderId)
 		s.Repo.UpdateCache(ctx)
 		return order, nil
 	}
-	log.Printf("Данные для заказа %s взяты из кеша.", orderId)
+	log2.Infof("Данные для заказа %s взяты из кеша.", orderId)
 	return order, nil
 }

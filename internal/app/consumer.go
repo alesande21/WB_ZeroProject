@@ -103,7 +103,7 @@ func RunConsumer() error {
 
 		select {
 		case sig := <-interrupt:
-			log.Printf("Приложение прерывается: %s", sig)
+			log2.Infof("Приложение прерывается: %s", sig)
 
 			//ctxShutDown, cancelShutdown := context.WithTimeout(context.Background(), 10*time.Second)
 			cancel()
@@ -115,10 +115,11 @@ func RunConsumer() error {
 			//	log.Printf("Ошибка при завершении сервера: %v", err)
 			//}
 
-			log.Println("Обработчик завершил работу работу")
+			log2.Info("Обработчик завершил работу работу")
+
 		case err := <-shutDownChan:
 			if err != nil && !errors.Is(err, http.ErrServerClosed) {
-				log.Fatalf("Ошибка при запуске сервера: %s", err)
+				return fmt.Errorf(": ошибка при запуске сервера: %s", err)
 			}
 		}
 	}
