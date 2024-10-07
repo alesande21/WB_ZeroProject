@@ -90,6 +90,7 @@ func RunConsumer() error {
 	go orderRepo.ListenForDbChanges(ctx, updateCache)
 
 	shutDownChan := make(chan error, 1)
+	defer close(shutDownChan)
 	// Проверка подключения
 	go func() {
 		shutDownChan <- conn.CheckConn(ctx, config.GetDBsConfig(), updateCache)
@@ -98,6 +99,7 @@ func RunConsumer() error {
 	go consumer.ListenAndServe(ctx)
 
 	interrupt := make(chan os.Signal, 1)
+	defer close(interrupt)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
 	// TODO: некорректно завершается найти причину
