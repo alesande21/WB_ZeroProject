@@ -77,7 +77,7 @@ func (db *DBConnection) GetConn() *sql.DB {
 	return db.Conn
 }
 
-func (db *DBConnection) CheckConn(ctx context.Context, cfg *DBConfig, updateCache chan interface{}) {
+func (db *DBConnection) CheckConn(ctx context.Context, cfg *DBConfig, updateCache chan interface{}) error {
 	var err error
 	attempt := 0
 
@@ -85,7 +85,7 @@ func (db *DBConnection) CheckConn(ctx context.Context, cfg *DBConfig, updateCach
 		select {
 		case <-ctx.Done():
 			log2.Info("CheckConn: Проверка соединения остановлена...")
-			return
+			return nil
 
 		default:
 			err = db.Conn.Ping()
@@ -115,7 +115,7 @@ func (db *DBConnection) CheckConn(ctx context.Context, cfg *DBConfig, updateCach
 				select {
 				case <-ctx.Done():
 					log2.Info("Проверка соединения остановлена...")
-					return
+					return nil
 				default:
 					time.Sleep(sleepInterval)
 					elapsedTime += sleepInterval * 100
@@ -124,9 +124,11 @@ func (db *DBConnection) CheckConn(ctx context.Context, cfg *DBConfig, updateCach
 		}
 	}
 
-	if attempt == db.connMax {
-		log2.Warn("Все попытки подключения к базе данных исчерпаны. Соединение не восстановлено.")
-	}
+	//if attempt == db.connMax {
+	//	log2.Warn("Все попытки подключения к базе данных исчерпаны. Соединение не восстановлено.")
+	//}
+
+	return fmt.Errorf(": все попытки подключения к базе данных исчерпаны. Соединение не восстановлено")
 }
 
 func (db *DBConnection) InterapterConn() {

@@ -89,14 +89,16 @@ func RunConsumer() error {
 
 	go orderRepo.ListenForDbChanges(ctx, updateCache)
 
+	shutDownChan := make(chan error, 1)
 	// Проверка подключения
-	go conn.CheckConn(ctx, config.GetDBsConfig(), updateCache)
+	go func() {
+		shutDownChan <- conn.CheckConn(ctx, config.GetDBsConfig(), updateCache)
+	}()
 
 	go consumer.ListenAndServe(ctx)
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
-	shutDownChan := make(chan error, 1)
 
 	// TODO: некорректно завершается найти причину
 	for {
@@ -119,7 +121,7 @@ func RunConsumer() error {
 			return nil
 		case err := <-shutDownChan:
 			if err != nil && !errors.Is(err, http.ErrServerClosed) {
-				return fmt.Errorf(": ошибка при запуске сервера: %s", err)
+				return fmt.Errorf(": ошибка при работе сервера: %s", err)
 			}
 		}
 	}
