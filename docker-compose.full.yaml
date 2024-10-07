@@ -52,7 +52,7 @@ services:
   producer:
     build:
       context: .
-      dockerfile: Dockerfile.producer
+      dockerfile: producer.Dockerfile
     ports:
       - "8081:8080"
     environment:
@@ -68,7 +68,7 @@ services:
   consumer:
     build:
       context: .
-      dockerfile: Dockerfile.consumer
+      dockerfile: consumer.Dockerfile
     ports:
       - "8082:8080"
     environment:

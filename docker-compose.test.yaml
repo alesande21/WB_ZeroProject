@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3.7'
 
 services:
   zookeeper:
@@ -13,6 +13,7 @@ services:
     image: confluentinc/cp-kafka:latest
     depends_on:
       - zookeeper
+    hostname: kafka
     environment:
       KAFKA_ADVERTISED_HOST_NAME: kafka
       KAFKA_BROKER_ID: 1
@@ -22,6 +23,8 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     ports:
       - "9092:9092"
+    expose:
+      - 29092
 
   kafka-ui:
     container_name: kafka-ui
@@ -38,7 +41,7 @@ services:
       - kafka
 
   db:
-    image: postgres:latest
+    image: postgres:16
     environment:
       POSTGRES_PASSWORD: 1
       POSTGRES_USER: postgres
@@ -50,16 +53,32 @@ services:
       - ./migrations/schema.sql:/docker-entrypoint-initdb.d/schema.sql
     command: ["postgres"]
 
+  producer:
+    build:
+      context: .
+      dockerfile: producer.Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      KAFKA_CONN: kafka:29092
+      KAFKA_HOST: kafka
+      KAFKA_PORT: 29092
+      KAFKA_TOPIC: orders.event.request
+      SERVER_ADDRESS: 0.0.0.0:8081
+    depends_on:
+      - kafka
+    command: sh -c "./bin/wb_service"
+
   consumer:
     build:
       context: .
-      dockerfile: Dockerfile.consumer
+      dockerfile: consumer.Dockerfile
     ports:
       - "8082:8080"
     environment:
-      KAFKA_CONN: kafka:9092
+      KAFKA_CONN: kafka:29092
       KAFKA_HOST: kafka
-      KAFKA_PORT: 9092
+      KAFKA_PORT: 29092
       KAFKA_TOPIC: orders.event.response
       POSTGRES_CONN: "host=db port=5432 user=postgres password=1 dbname=postgres sslmode=disable"
       POSTGRES_DATABASE: postgres
@@ -69,8 +88,8 @@ services:
       POSTGRES_USERNAME: postgres
       SERVER_ADDRESS: 0.0.0.0:8080
     depends_on:
-      - db
       - kafka
+      - db
     command: sh -c "./bin/wb_service"
 
 volumes:

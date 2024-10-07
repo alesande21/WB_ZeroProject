@@ -1,0 +1,38 @@
+# Используем официальный образ Go в качестве базового образа для сборки
+FROM golang:1.22 AS builder
+LABEL authors="alesande"
+
+# Устанавливаем рабочую директорию внутри контейнера
+WORKDIR /app
+
+# Копируем файлы go.mod и go.sum и загружаем зависимости
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Копируем исходный код приложения
+COPY . .
+
+# Сборка приложения
+RUN CGO_ENABLED=1 GOOS=linux go build -o wb_service ./cmd/producer && ls && ls -la /app/
+
+# Финальный образ
+FROM alpine:latest
+
+# Устанавливаем необходимые пакеты
+RUN apk --no-cache add ca-certificates postgresql-client
+
+# Создаем директорию для приложения
+WORKDIR /app
+
+# Копируем скомпилированный бинарник из стадии сборки
+COPY --from=builder /app/wb_service /app/wb_service
+
+# Делаем бинарный файл исполняемым
+RUN chmod +x /app/wb_service
+
+# Настройка порта, который будет использоваться
+EXPOSE 8080
+
+# Определяем точку входа
+ENTRYPOINT ["/app/wb_service"]
+#ENTRYPOINT ["/bin/sh"]
