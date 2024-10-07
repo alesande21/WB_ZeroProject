@@ -35,5 +35,5 @@ services:
 #      - db
     command: sh -c "sleep 10 && ./wb_service -ip 0.0.0.0 -port 8080"
 
-volumes:
-  postgres_data:
+#volumes:
+#  postgres_data:
