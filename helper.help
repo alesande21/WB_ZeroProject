@@ -1,0 +1,5 @@
+lsof -i | grep -E LISTEN
+lsof -i :8080
+docker rmi -f $(docker inspect --format='{{.Image}}' 91b1177b1669) && docker rm -f 91b1177b1669
+docker run -it --entrypoint /bin/sh wb_zeroproject-consumer
+docker exec -it wb_zeroproject-consumer-1 /bin/sh

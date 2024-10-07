@@ -51,12 +51,6 @@ func RunConsumer() error {
 	// TODO: убрать
 	//go conn.InterapterConn()
 
-	updateCache := make(chan interface{})
-	defer close(updateCache)
-
-	// Проверка подключения
-	go conn.CheckConn(ctx, config.GetDBsConfig(), updateCache)
-
 	// Инициализация репозитория
 	log2.Info("Инициализация репозитория...")
 	var postgresRep database2.DBRepository
@@ -72,7 +66,8 @@ func RunConsumer() error {
 	orderService := service2.NewOrderService(orderRepo)
 
 	// Обновление кеша
-	go orderRepo.ListenForDbChanges(ctx, updateCache)
+	updateCache := make(chan interface{})
+	defer close(updateCache)
 
 	log2.Info("Загрузка конфига для подключения к кафке...")
 	configKafka, err := kafka2.GetConfigProducer()
@@ -91,6 +86,11 @@ func RunConsumer() error {
 			log2.Errorf("RunConsumer-> consumer.Close: ошибка при закрытии Consumer: %s", err.Error())
 		}
 	}(consumer)
+
+	go orderRepo.ListenForDbChanges(ctx, updateCache)
+
+	// Проверка подключения
+	go conn.CheckConn(ctx, config.GetDBsConfig(), updateCache)
 
 	go consumer.ListenAndServe(ctx)
 

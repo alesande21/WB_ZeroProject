@@ -97,10 +97,9 @@ func RunProducer() error {
 	select {
 	case sig := <-interrupt:
 		log2.Infof("Приложение прерывается: %s", sig)
-
 		ctxShutDown, cancelShutdown := context.WithTimeout(context.Background(), 10*time.Second)
 
-		// TODO: активировать в случает если контекст понадыбится
+		// TODO: активировать если контекст будет необходим или убрать
 		//cancel()
 
 		defer cancelShutdown()

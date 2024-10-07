@@ -34,5 +34,5 @@ RUN chmod +x /app/wb_service
 EXPOSE 8080
 
 # Определяем точку входа
-#ENTRYPOINT ["/app/wb_service"]
-ENTRYPOINT ["/bin/sh"]
+ENTRYPOINT ["/app/wb_service"]
+#ENTRYPOINT ["/bin/sh"]

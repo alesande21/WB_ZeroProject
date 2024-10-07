@@ -308,7 +308,7 @@ func (r *OrderRepo) Ping() error {
 func (r *OrderRepo) UpdateCache(ctx context.Context) {
 	c, err := r.GetOrderCount(ctx)
 	if err != nil || c == 0 {
-		log2.Errorf("UpdateCache-> r.GetOrderCount: Количество элементов в базе данных %d. Ошибка обновление кеша: %s", c, err.Error())
+		log2.Errorf("UpdateCache-> r.GetOrderCount: Количество элементов в базе данных %d. Ошибка обновление кеша: %s", c, err)
 		return
 	}
 
@@ -337,6 +337,7 @@ func (r *OrderRepo) UpdateCache(ctx context.Context) {
 }
 
 func (r *OrderRepo) ListenForDbChanges(ctx context.Context, updateCache <-chan interface{}) {
+	time.Sleep(2 * time.Second)
 	tickerCacheCheck := time.NewTicker(time.Second * 51)
 	tickerFullUpdate := time.NewTicker(6 * time.Minute)
 	defer tickerCacheCheck.Stop()
