@@ -23,7 +23,7 @@ run:
 	./app
 
 init:
-	go mod init "AvitoProject"
+	go mod init "WBProject"
 
 tidy:
 	go mod tidy
