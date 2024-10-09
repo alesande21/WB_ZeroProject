@@ -167,10 +167,6 @@ func (oc *OrderConsumer) ListenAndServe(ctx context.Context) {
 	}
 }
 
-//func (oc *OrderConsumer) CreateOrderes(ctx context.Context) {
-//
-//}
-
 func (oc *OrderConsumer) Close() error {
 	oc.Producer.Close()
 	return oc.Consumer.Close()

@@ -46,42 +46,6 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
-// GetOrders operation middleware
-//func (siw *ServerInterfaceWrapper) GetOrders(w http.ResponseWriter, r *http.Request) {
-//	ctx := r.Context()
-//
-//	var err error
-//
-//	// Parameter object where we will unmarshal all parameters from the context
-//	var params entity2.GetOrdersParams
-//
-//	// ------------- Optional query parameter "limit" -------------
-//
-//	err = runtime.BindQueryParameter("form", true, false, "limit", r.URL.Query(), &params.Limit)
-//	if err != nil {
-//		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
-//		return
-//	}
-//
-//	// ------------- Optional query parameter "offset" -------------
-//
-//	err = runtime.BindQueryParameter("form", true, false, "offset", r.URL.Query(), &params.Offset)
-//	if err != nil {
-//		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "offset", Err: err})
-//		return
-//	}
-//
-//	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//		siw.Handler.GetOrders(w, r, params)
-//	}))
-//
-//	for _, middleware := range siw.HandlerMiddlewares {
-//		handler = middleware(handler)
-//	}
-//
-//	handler.ServeHTTP(w, r.WithContext(ctx))
-//}
-
 // CreateOrder operation middleware
 func (siw *ServerInterfaceWrapper) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -261,63 +225,6 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 
 	return r
 }
-
-// Base64 encoded, gzipped, json marshaled Swagger object
-//var swaggerSpec = []string{
-//
-//	"H4sIAAAAAAAC/8RaX3PbxrX/Kpi99xGhKCqSbT5d28nNeJzYGit9SeTRQORKQiwCDAC6UTycEakkTirX",
-//	"btN0mkmbtJnO9C1TSBEsihKhr3D2G3XO2QUIgCC5ij2NH2yT3D3/95zfObtPWMNttV2HO4HP6k9Y2/Ks",
-//	"Fg+4pz5t244V2K7zrt2yA/yqyf2GZ7fxO1Zn8DcIYSh6MIALCOFcPIMRxBAZ4ikMRA/OITbgGGI4hWOx",
-//	"D6H4CkKI4EIcis8NiOFI/A4iGIo+xHBcMeBb0YNLiInQqTiASPRFT7ww4ATO8Z9TCOFS7EMserjDED0D",
-//	"LiGEn2EAIwjFFzCACM4q6866Az9CJPbhGP9GAjGcw0uIYDQhkeiLZwYpUKYKbb0UB6In+vRjUb+iGusO",
-//	"M5mN5vm4w709ZjLHanFWZ7tkRJP5jR3estCa/BOr1d7lrL5ssi3Xa1kBqzPbCZZqzGQt6xO71Wmx+nLV",
-//	"ZC3bkR+qJgv22lyu49vcY92umfHU/a0tn5e56jvUT2o0JGMMxFOISKvjEjXGJhvhr0fiUJqJzE/2+AqN",
-//	"CTE5AY3/FM0G4Wt14xRLulLJUlNWy0w5y3rdhAzFfKPjB26Le3eaJTb8Fk5QaQwE8RkMYIjBAzEGGOo7",
-//	"FAeoh+hDhIpKH77Lne1gh9UXq2PmfuDZzjbrmqzJd+3HqFsZs5H4DIljQKJN0HQx+YW8FsIxDCFi5lj3",
-//	"J8xqNj3u+6zOVnddf8dqGu/ZnmUsLjOTNexgj9XZXdvbswLjPffTRzYamLcse5fVWcD94P+28UOl4bbW",
-//	"2djc73M/MPAv9zEzWXvHdTir37hWq8o/JvP4thT6rmfZLjrmU7vN6rWVpRvXqzcwPj23zb3A5n5OyCfs",
-//	"fz2+xersfxbGeWhBeWMhsc1NtbybqKC37Tau7ab66W16mxZ3E9X1Nt3Dtd3UMnqbVmlxd2w8vW0P5Oqu",
-//	"MrHepg/sNqUJj3/csT3eZPUPpYKJzJKasq+ZOigVLrHiwzSE3c2PeCPIhvDNsVcLkfwHOBH7mGuKwTu4",
-//	"yhG5rXxfIP4nOiIxnIyJl5BemkX57SRCCqR/gnOZEInBCEbiEM4MCMfqpP+lUx+W6ZcmI2nBnFTLs6S6",
-//	"pyKwINTfKS2r2jQiRphPR5gzX8m+q0n0Fhh+DzFcUBWViQ1iTEvI+grKPEiDvED9HxBR3o+xMM+Ufib9",
-//	"Ne49thvl4odY7FMTYdkWB+IplrRXstcH8vxNukc8lSVURguWtBMKo16eeq2MOHeC0mLwHUW4LDYQw89I",
-//	"H2Kkf0keQWB1ghogw3P8Z0huu1R669iSe57rPeB+23X8MkvOK+t5WIXgQJYs8SUM4EgKl+4nBZJS+Txf",
-//	"xDxu+cRyvVOtLjUkNBEvRA9GkixEJpFCBAMX4iAHKaYxeYHHJTIIwb1E4TOoBjnsQwhHEFMwjIizTOq5",
-//	"0pWINmGcH+CSIGF6EnNqI8Yh+xyhH+n0nhlpdY8kREmdM+GbQupWQpQlYzvgLX0sIeMUQsxhrKjqpmc5",
-//	"zXkVBvndooVYnXe8YMPW2nN7xwvuNHULLe5IiqzT0mRxryUZtD2VGOZtWKWFaGs9Bg9sou9bu1rk13Ad",
-//	"rrc/1VuP63B9YAUdX2uHXNk1WeAG1u6Gtubv4/JU/cCzGo82nE5rk3vzdtPae3JpMUyTcChQTDwi7Wwm",
-//	"QITMqKyTVyDxualCMjXJtANwK4ncwin4I8Y5puNs4IcVjdSYCdlJsv+kIz9MukaZ9kfZqpnyYvnmZOVN",
-//	"NtmQSG5Tqv9ENcsTn1u80oMxSfprGIkDwjpoIyRP1Wtax5PlTEAkqU5Ta1OU1iZKhwMqvBFaKWkrTyCE",
-//	"l/o2WvXKS/6/SIOwIOIJ9aqYj2WlzPJpup1NCj/FSIWq4vPA1nb7dHvJEkU1YlCQrGgOXUeuqcwzAakw",
-//	"RlTwZRQ2CkZBxqpofqGEDsXn+mZZU4lsFvup4Tn1mK2l6a5A90eSry8ORK9gPxVVpzThQObFc0ZDgPIY",
-//	"yqS+MsTTT8FWKF4Y0k5oxJ5BGDKiBRe/MK5KtVQxEsMwq2UMxyyzaV5CpzQuWVqeZ1Ef7HpNmc8LHL8h",
-//	"LcIyG+YBQTIa0ai/mSkKImYr4BsNj1sBn7uTpHzLCvhttb4wJNFpd7N7NvxxZ6CzN2kkslh81j65CB3q",
-//	"BNxzrN0N3952rKDjcS1V76hta+mu7hX8TMV+121oQBDi9q5citHgbm34O5an55D77tYaLU7iaKNj6+1U",
-//	"GMzaa3EnmLcjWYaoB9k94nPtT+vucnKBrwMNfQULXxfKGZtjAufI2MjE79gQiY9T75UGkJk7cyVBnbFT",
-//	"on7huGU9XYaXJs5bWYJQww2s3AQPLjAX9qjdO5FQJBnrjnNH2s+xWrW2+Mbi4hu1lferK/Varb544wNW",
-//	"kv2TeHk9pbZMks3llaUtvnlts7Z5/c3NlYD7waJOsZ1yUudiKPEC7XJJyIbSOvaaqluWiIeuJ3J9e5la",
-//	"X2AHX1RrXjHNHvhJSf8Np+IQhglbkljNYTJmliMmRCYk7ZnmVCafM8oiKpZNOoWObM/T+xb5Q5QYSnxJ",
-//	"BfAEBspgKt4KYpRIkUk6mqP1mBArDQxml0Kr5Xa009lNubhrsk3LeaS56RYuxZ6643ncaexpbrudLO8m",
-//	"uWNji3Ptzbjh/znPFdCG6+tq+lYyqsUtXZNtu27T36BeTpPCO7iDMFnGgxtNbQECNbJ5bDfnp3W1aTVZ",
-//	"rjI793WmGGrzA7khrSmObzUCjXl+WhwL5SRLIidOJhQyGppJKOaMpSKt6MS8Q3IBUlYa8uFbBsgP4AJP",
-//	"kEHpAc8lnRmZrvRgcDbaSxp2IjqcRn9u3i4eirKEjcnuOdW3+VyWZzJJDo92vqMES+PSnvgci4Q4lD1a",
-//	"fiwtDq5ky9whLG+jYnmRTXn92cxLi/ncynh8PUYJJTalhnecfjHZ/saxP3kjARdyxpst3IsrS9duVK9d",
-//	"q13Tmg1M5pKyee0R3f0jkJmwSL7xMuAIIjgdd3zhq5lsNZOeSm4PFFnxFRb/K0T5OBPNvsP5ZUcpxdll",
-//	"dxN4gp5OrdRpJadIJ+ATEcg5H18SSBg5kg9DLiGmxXCqningSaEmO33RASFcpJDpSFZp/CZDp1JUq0yr",
-//	"1tXv+UOxL/owklKkMlzQ+wWUg94wVPSmWNnGYpbXIBZ9em8SwUsYZEx7tflfl/rULXeS183VO6mbDshF",
-//	"GNk5B2UDPk5eZwR2QMj6PpYz4z3LsbY5BqNxc/UOM9lj7vmSwWKlWqkSNmxzx2rbrM6WKtXKEhWuYIdQ",
-//	"1YLVtmVhpI/bpe9YsgOSDEaTL2/WHfgz2WlgkOPOxTMMeJlXFaajEMFvis+Anif3WccYaRni4lAqiwiQ",
-//	"Htlg0LB3eHBfymrm3k19WF74x0sWiu+quuYVtqgHPt2HiA7kXR1Zq1at0pDGdQIFeq12e9du0KaFj9St",
-//	"1fjBjNaMQc6MJoZJXcKH+RaNLgcj8aV8LySv4Chhwsig38qdhsTfvKLoM+cxuUvMMkm/h0jlENlIZktR",
-//	"/m3S+HRjbxSrw4+Jhu4+98VhhfCb32m1LG8vvZ1P9E7um6XuQ6RX0L1rZoN+weG/pXd3Uyp3tuGWrZmc",
-//	"tJNsmXaFHlSloS6zp7x8zYlP/xtUJgJbTgIotscQ9Jbb3LuSk1yH39+i0/AqkWZq7XpY5udvUuVnmIpl",
-//	"0XfgdXj3FY+VhrQlsv4lkQhBRvYgZacs//2j8kN6hx3KgcWgMPYpTiUKp0E7YidOwpN0rNbNlILyBHxr",
-//	"705zMgfTu0EsLZlng5lRXd7r5lU8SF3bw185TggkTZ+BiQP5OOhMLvi1QyefFQvDwvm6zM+yv4AehVsb",
-//	"cdFUrPETbegb4vf0iOeS2oQRlonBnLcwE9O9n+llCX41UkhqUAC02VcooeiLQ/l2BRu0TFEShxWjHIzc",
-//	"bNurqE15YE7Ukszj6FQ2XRFMg968UWmM6cFdRM9/I9E31pGjcf/uOkPQ1DXZ8nwBCJu9Fin6sp1T94R0",
-//	"N7dcraZ1/Fw8pyc4ZwacYCDQ3d6ZacCQ/HUBkVGrVierOokaK2+O2z967zvNn+ppMfceJympYIK/IhzK",
-//	"zbSzBBSC7ni7rM52gqBdX1igu4Id1w/q16vXq1j3/hMAAP//qEz5/8EvAAA=",
-//}
 
 var swaggerSpec = []string{
 

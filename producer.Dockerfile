@@ -35,8 +35,7 @@ ENV PATH=/api/bin/:$PATH
 
 # Копируем скомпилированный бинарник из стадии сборки
 COPY --from=builder /build/wb_service ./bin/wb_service
-COPY --from=builder /build/env.example .
-
+COPY --from=builder /build/static ./static
 
 # Экспонируем порт
 EXPOSE 8080

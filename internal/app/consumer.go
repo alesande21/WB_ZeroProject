@@ -48,9 +48,6 @@ func RunConsumer() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// TODO: убрать
-	//go conn.InterapterConn()
-
 	// Инициализация репозитория
 	log2.Info("Инициализация репозитория...")
 	var postgresRep database2.DBRepository
@@ -102,22 +99,13 @@ func RunConsumer() error {
 	defer close(interrupt)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
-	// TODO: некорректно завершается найти причину
 	for {
 
 		select {
 		case sig := <-interrupt:
 			log2.Infof("Приложение прерывается: %s", sig)
-
-			//ctxShutDown, cancelShutdown := context.WithTimeout(context.Background(), 10*time.Second)
 			cancel()
 			time.Sleep(10 * time.Second)
-
-			//defer cancelShutdown()
-			//err := s.Shutdown(ctxShutDown)
-			//if err != nil {
-			//	log.Printf("Ошибка при завершении сервера: %v", err)
-			//}
 
 			log2.Info("Обработчик завершил работу работу")
 			return nil

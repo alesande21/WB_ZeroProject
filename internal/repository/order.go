@@ -308,7 +308,7 @@ func (r *OrderRepo) Ping() error {
 func (r *OrderRepo) UpdateCache(ctx context.Context) {
 	c, err := r.GetOrderCount(ctx)
 	if err != nil || c == 0 {
-		log2.Errorf("UpdateCache-> r.GetOrderCount: Количество элементов в базе данных %d. Ошибка обновление кеша: %s", c, err)
+		log2.Errorf("UpdateCache-> r.GetOrderCount: Количество элементов в базе данных %d. Ошибка обновление кеша: %v", c, err)
 		return
 	}
 

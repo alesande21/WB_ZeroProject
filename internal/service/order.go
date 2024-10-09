@@ -32,7 +32,7 @@ func (s *OrderService) GetOrderById(ctx context.Context, orderId entity2.OrderId
 	if err != nil {
 		order, errDb = s.Repo.GetOrderByIdFromDb(ctx, orderId)
 		if errDb != nil {
-			return nil, fmt.Errorf("-> s.Repo.GetOrderByIdFromCache%s<- s.Repo.GetOrderByIdFromDb%s", err, errDb)
+			return nil, fmt.Errorf("-> s.Repo.GetOrderByIdFromCache%v<- s.Repo.GetOrderByIdFromDb%v", err, errDb)
 		}
 		log2.Infof("GetOrderById: данные для заказа %s взяты из базы данных. Запускается обновление кеша...", orderId)
 		s.Repo.UpdateCache(ctx)

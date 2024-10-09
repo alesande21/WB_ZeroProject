@@ -61,14 +61,6 @@ func Open(cfg *DBConfig) (*DBConnection, error) {
 		connBackoffFactor: DefaultConnBackoffFactor}, nil
 }
 
-// GetConn2 TODO: удалить если не нужен
-func (db *DBConnection) GetConn2() (*sql.DB, error) {
-	if db.Conn == nil {
-		return nil, fmt.Errorf(": подключение к базе данных отсуствует")
-	}
-	return db.Conn, nil
-}
-
 func (db *DBConnection) GetConn() *sql.DB {
 	if db.Conn == nil {
 		log2.Warn("GetConn: подключение к базе данных отсуствует")
@@ -124,17 +116,5 @@ func (db *DBConnection) CheckConn(ctx context.Context, cfg *DBConfig, updateCach
 		}
 	}
 
-	//if attempt == db.connMax {
-	//	log2.Warn("Все попытки подключения к базе данных исчерпаны. Соединение не восстановлено.")
-	//}
-
 	return fmt.Errorf(": все попытки подключения к базе данных исчерпаны. Соединение не восстановлено")
-}
-
-func (db *DBConnection) InterapterConn() {
-	for {
-		time.Sleep(time.Second * 30)
-		db.Conn.Close()
-		log2.Warnf("СОЕДИНЕНИЕ РАЗОРВАНО")
-	}
 }

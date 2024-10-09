@@ -78,42 +78,6 @@ func sendErrorResponse(w http.ResponseWriter, code int, resp entity2.ErrorRespon
 	}
 }
 
-//func (o *OrderServer) GetOrders(w http.ResponseWriter, r *http.Request, params entity2.GetOrdersParams) {
-//	limit := params.Limit
-//	if limit == nil {
-//		var valLimit entity2.PaginationLimit = 5
-//		if params.Offset != nil {
-//			limit = &valLimit
-//		} else {
-//			count, err := o.orderService.Repo.GetOrderCount(r.Context())
-//			if err != nil {
-//				sendErrorResponse(w, http.StatusInternalServerError, entity2.ErrorResponse{Reason: "Ошибка получения списка заказов"})
-//				return
-//			}
-//			valLimit = entity2.PaginationLimit(count)
-//			limit = &valLimit
-//		}
-//	}
-//
-//	offset := params.Offset
-//	if offset == nil {
-//		var defOffset entity2.PaginationOffset = 0
-//		offset = &defOffset
-//	}
-//
-//	orders, err := o.orderService.Repo.GetOrders(r.Context(), *limit, *offset)
-//	if err != nil {
-//		http.Error(w, "Ошибка получения списка заказов", http.StatusInternalServerError)
-//		return
-//	}
-//
-//	w.WriteHeader(http.StatusOK)
-//	w.Header().Set("Content-Type", "application/json")
-//	if err := json.NewEncoder(w).Encode(orders); err != nil {
-//		http.Error(w, "Ошибка кодирования ответа", http.StatusBadRequest)
-//	}
-//}
-
 func (os OrderServer) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	var newOrders []entity2.Order
 	if err := json.NewDecoder(r.Body).Decode(&newOrders); err != nil {
@@ -122,7 +86,7 @@ func (os OrderServer) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := os.orderPlacer.CreateOrder(r.Context(), "orders.event.request.create", newOrders)
+	err := os.orderPlacer.CreateOrder("orders.event.request.create", newOrders)
 	if err != nil {
 		log2.Errorf("CreateOrder-> os.orderPlacer.CreateOrder%s", err.Error())
 		sendErrorResponse(w, http.StatusInternalServerError, entity2.ErrorResponse{Reason: "Ошибка создания заказа."})
@@ -145,7 +109,7 @@ func (os OrderServer) GetOrderById(w http.ResponseWriter, r *http.Request, order
 		return
 	}
 
-	order, err := os.orderPlacer.GetOrder(r.Context(), "orders.event.request.getByID", orderUid)
+	order, err := os.orderPlacer.GetOrder("orders.event.request.getByID", orderUid)
 	if err != nil {
 		log2.Errorf("GetOrderById-> os.orderPlacer.GetOrder%s", err.Error())
 		sendErrorResponse(w, http.StatusNotFound, entity2.ErrorResponse{Reason: "Заказ не найден."})

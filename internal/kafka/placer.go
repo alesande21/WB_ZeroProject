@@ -123,7 +123,7 @@ func (op *OrderPlacer) PlaceOrder(orderType string, size int) error {
 	return nil
 }
 
-func (op *OrderPlacer) CreateOrder(ctx context.Context, msgType string, orders []entity2.Order) error {
+func (op *OrderPlacer) CreateOrder(msgType string, orders []entity2.Order) error {
 
 	var b bytes.Buffer
 
@@ -155,8 +155,7 @@ func (op *OrderPlacer) CreateOrder(ctx context.Context, msgType string, orders [
 	return nil
 }
 
-// TODO: понять как вернуть ордер из кафка. Использовать ли мапу?
-func (op *OrderPlacer) GetOrder(ctx context.Context, msgType string, orderId entity2.OrderId) (*entity2.Order, error) {
+func (op *OrderPlacer) GetOrder(msgType string, orderId entity2.OrderId) (*entity2.Order, error) {
 
 	var b bytes.Buffer
 	correlationID, err := utils.GenerateUUIDV7()

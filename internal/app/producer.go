@@ -42,7 +42,6 @@ func RunProducer() error {
 		}
 	}(producer)
 
-	// TODO: убрать или найти другое применение
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -51,7 +50,6 @@ func RunProducer() error {
 
 	log2.Info("Загрузка настроек для сервера...")
 	var serverAddress http2.ServerAddress
-	//err = serverAddress.LoadConfigAddress("src/internal/controllers/http/config.yml")
 	err = serverAddress.UpdateEnvAddress()
 	if err != nil {
 		return fmt.Errorf("-> serverAddress.UpdateEnvAddress%w", err)
@@ -72,7 +70,6 @@ func RunProducer() error {
 	})
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
 
-	// TODO: надо бы включить middleware как то
 	//r.Use(middleware.OapiRequestValidator(swagger))
 	http2.HandlerFromMux(tenderServer, r)
 
@@ -99,13 +96,11 @@ func RunProducer() error {
 		log2.Infof("Приложение прерывается: %s", sig)
 		ctxShutDown, cancelShutdown := context.WithTimeout(context.Background(), 10*time.Second)
 
-		// TODO: активировать если контекст будет необходим или убрать
-		//cancel()
+		cancel()
 
 		defer cancelShutdown()
 		err := s.Shutdown(ctxShutDown)
 		if err != nil {
-			//log2.Errorf("Ошибка при завершении сервера: %v", err)
 			return fmt.Errorf("-> s.Shutdown: %w", err)
 		}
 
