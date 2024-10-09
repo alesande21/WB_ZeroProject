@@ -255,8 +255,6 @@ func (op *OrderPlacer) ListenResponse(ctx context.Context) {
 				continue
 			}
 
-			//ok = false
-
 			switch evt.Type {
 			case "orders.event.response":
 				var responseEvent eventGetResponse
